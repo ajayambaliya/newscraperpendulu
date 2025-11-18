@@ -31,12 +31,12 @@ class StateManager:
         self._processed_urls: Set[str] = set()
         
         # GitHub Gist configuration (optional)
-        self.gist_token = os.getenv('GITHUB_GIST_TOKEN')
-        self.gist_id = os.getenv('GITHUB_GIST_ID')
+        self.gist_token = os.getenv('GIST_TOKEN')
+        self.gist_id = os.getenv('GIST_ID')
         
         # If online storage is enabled but not configured, fall back to local
         if self.use_online and (not self.gist_token or not self.gist_id):
-            print("Warning: Online storage requested but GITHUB_GIST_TOKEN or GITHUB_GIST_ID not set.")
+            print("Warning: Online storage requested but GIST_TOKEN or GIST_ID not set.")
             print("Falling back to local file storage only.")
             self.use_online = False
         

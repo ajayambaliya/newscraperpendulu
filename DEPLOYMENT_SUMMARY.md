@@ -35,9 +35,9 @@
 - [ ] Create State Gist (`scraped_urls.json`)
 - [ ] Create Session Gist (`session.json`)
 - [ ] Add to `.env` file:
-  - `GITHUB_GIST_TOKEN`
-  - `GITHUB_GIST_ID`
-  - `GITHUB_SESSION_GIST_ID`
+  - `GIST_TOKEN`
+  - `GIST_ID`
+  - `SESSION_GIST_ID`
 - [ ] Test locally to verify Gist integration
 
 See [GIST_SETUP_GUIDE.md](GIST_SETUP_GUIDE.md) for detailed instructions.
@@ -53,9 +53,9 @@ See [GIST_SETUP_GUIDE.md](GIST_SETUP_GUIDE.md) for detailed instructions.
   - `TELEGRAM_BOT_TOKEN`
   
   **Recommended:**
-  - `GITHUB_GIST_TOKEN`
-  - `GITHUB_GIST_ID`
-  - `GITHUB_SESSION_GIST_ID`
+  - `GIST_TOKEN`
+  - `GIST_ID`
+  - `SESSION_GIST_ID`
 
 - [ ] Enable GitHub Actions in repository settings
 - [ ] Test manual workflow trigger
@@ -151,9 +151,9 @@ TELEGRAM_BOT_TOKEN=123456789:ABC...
 TELEGRAM_CHANNEL=currentadda
 
 # Optional but recommended
-GITHUB_GIST_TOKEN=ghp_...
-GITHUB_GIST_ID=abc123...
-GITHUB_SESSION_GIST_ID=xyz789...
+GIST_TOKEN=ghp_...
+GIST_ID=abc123...
+SESSION_GIST_ID=xyz789...
 ```
 
 ### GitHub Secrets (Production)

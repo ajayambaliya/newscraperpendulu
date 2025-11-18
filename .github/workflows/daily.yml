@@ -38,9 +38,9 @@ jobs:
           LOGIN_PASSWORD: ${{ secrets.LOGIN_PASSWORD }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHANNEL: ${{ secrets.TELEGRAM_CHANNEL || 'currentadda' }}
-          GITHUB_GIST_TOKEN: ${{ secrets.GITHUB_GIST_TOKEN }}
-          GITHUB_GIST_ID: ${{ secrets.GITHUB_GIST_ID }}
-          GITHUB_SESSION_GIST_ID: ${{ secrets.GITHUB_SESSION_GIST_ID }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+          SESSION_GIST_ID: ${{ secrets.SESSION_GIST_ID }}
         run: |
           python src/runner.py
           

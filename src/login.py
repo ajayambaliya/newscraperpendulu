@@ -43,8 +43,8 @@ class LoginManager:
         self.use_online = use_online
         
         # GitHub Gist configuration for online session storage
-        self.gist_token = os.getenv('GITHUB_GIST_TOKEN')
-        self.session_gist_id = os.getenv('GITHUB_SESSION_GIST_ID')
+        self.gist_token = os.getenv('GIST_TOKEN')
+        self.session_gist_id = os.getenv('SESSION_GIST_ID')
         
         # If online storage is enabled but not configured, fall back to local
         if self.use_online and (not self.gist_token or not self.session_gist_id):

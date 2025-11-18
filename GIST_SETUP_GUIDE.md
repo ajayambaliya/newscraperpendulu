@@ -58,9 +58,9 @@ Open your `.env` file and add:
 
 ```env
 # GitHub Gist Configuration
-GITHUB_GIST_TOKEN=ghp_your_token_here
-GITHUB_GIST_ID=your_state_gist_id_here
-GITHUB_SESSION_GIST_ID=your_session_gist_id_here
+GIST_TOKEN=ghp_your_token_here
+GIST_ID=your_state_gist_id_here
+SESSION_GIST_ID=your_session_gist_id_here
 ```
 
 Replace:
@@ -75,9 +75,9 @@ When deploying to GitHub Actions:
 1. Go to your repository on GitHub
 2. Click **Settings** → **Secrets and variables** → **Actions**
 3. Add these three secrets:
-   - `GITHUB_GIST_TOKEN` = your token
-   - `GITHUB_GIST_ID` = your state gist ID
-   - `GITHUB_SESSION_GIST_ID` = your session gist ID
+   - `GIST_TOKEN` = your token
+   - `GIST_ID` = your state gist ID
+   - `SESSION_GIST_ID` = your session gist ID
 
 ## Example Configuration
 
@@ -93,9 +93,9 @@ TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
 TELEGRAM_CHANNEL=currentadda
 
 # GitHub Gist (Optional but recommended)
-GITHUB_GIST_TOKEN=ghp_abc123XYZ789def456GHI012jkl345MNO678
-GITHUB_GIST_ID=abc123def456ghi789jkl012mno345pqr678
-GITHUB_SESSION_GIST_ID=xyz789abc123def456ghi789jkl012mno345
+GIST_TOKEN=ghp_abc123XYZ789def456GHI012jkl345MNO678
+GIST_ID=abc123def456ghi789jkl012mno345pqr678
+SESSION_GIST_ID=xyz789abc123def456ghi789jkl012mno345
 ```
 
 ## Testing

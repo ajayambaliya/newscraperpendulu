@@ -38,9 +38,9 @@ You need to add the following secrets to your GitHub repository:
 | Secret Name | Description | How to Get |
 |------------|-------------|------------|
 | `TELEGRAM_CHANNEL` | Channel username (without @) | Default: `currentadda` |
-| `GITHUB_GIST_TOKEN` | Personal access token for Gist | See below |
-| `GITHUB_GIST_ID` | Gist ID for URL tracking | See below |
-| `GITHUB_SESSION_GIST_ID` | Gist ID for session storage | See below |
+| `GIST_TOKEN` | Personal access token for Gist | See below |
+| `GIST_ID` | Gist ID for URL tracking | See below |
+| `SESSION_GIST_ID` | Gist ID for session storage | See below |
 
 ### Step 3: Create GitHub Personal Access Token (Optional)
 
@@ -51,7 +51,7 @@ For persistent state management across workflow runs:
 3. Give it a name: `Pendulumedu Scraper Gist Access`
 4. Select scopes: **gist** (only)
 5. Click **Generate token**
-6. Copy the token and save it as `GITHUB_GIST_TOKEN` secret
+6. Copy the token and save it as `GIST_TOKEN` secret
 
 ### Step 4: Create GitHub Gists (Optional)
 
@@ -64,14 +64,14 @@ For state persistence:
    - Make it **Secret**
    - Click **Create secret gist**
 3. Copy the Gist ID from the URL (e.g., `https://gist.github.com/username/abc123def456`)
-4. Save it as `GITHUB_GIST_ID` secret
+4. Save it as `GIST_ID` secret
 
 5. Create another gist:
    - **Filename**: `session.json`
    - **Content**: `{}`
    - Make it **Secret**
    - Click **Create secret gist**
-6. Copy the Gist ID and save it as `GITHUB_SESSION_GIST_ID` secret
+6. Copy the Gist ID and save it as `SESSION_GIST_ID` secret
 
 ### Step 5: Configure Telegram Bot
 

@@ -34,7 +34,7 @@ The following secrets must be configured in your GitHub repository for the autom
 
 These secrets enable online storage via GitHub Gist for persistent state and session management:
 
-### 4. GITHUB_GIST_TOKEN
+### 4. GIST_TOKEN
 - **Purpose**: Personal Access Token for accessing GitHub Gists
 - **Format**: String starting with `ghp_` or `github_pat_`
 - **How to Obtain**:
@@ -43,9 +43,10 @@ These secrets enable online storage via GitHub Gist for persistent state and ses
   3. Select only `gist` scope
   4. Copy the generated token
 - **Why Needed**: Allows the system to remember processed quizzes and reuse login sessions across runs
+- **Note**: Secret names cannot start with `GITHUB_` in GitHub Actions
 - **See**: [GIST_SETUP_GUIDE.md](GIST_SETUP_GUIDE.md) for detailed instructions
 
-### 5. GITHUB_GIST_ID
+### 5. GIST_ID
 - **Purpose**: Gist ID for storing processed quiz URLs
 - **Format**: Alphanumeric string (e.g., `abc123def456`)
 - **How to Obtain**:
@@ -55,9 +56,9 @@ These secrets enable online storage via GitHub Gist for persistent state and ses
   4. Copy the ID from the gist URL
 - **See**: [GIST_SETUP_GUIDE.md](GIST_SETUP_GUIDE.md)
 
-### 6. GITHUB_SESSION_GIST_ID
+### 6. SESSION_GIST_ID
 - **Purpose**: Gist ID for storing login session cookies
-- **Format**: Alphanumeric string (different from GITHUB_GIST_ID)
+- **Format**: Alphanumeric string (different from GIST_ID)
 - **How to Obtain**:
   1. Create another gist at https://gist.github.com/
   2. Filename: `session.json`
@@ -74,9 +75,9 @@ These secrets enable online storage via GitHub Gist for persistent state and ses
 
 **Recommended (6 secrets total):**
 - All above +
-- GITHUB_GIST_TOKEN
-- GITHUB_GIST_ID
-- GITHUB_SESSION_GIST_ID
+- GIST_TOKEN
+- GIST_ID
+- SESSION_GIST_ID
 
 **Without Gist secrets:** System works but won't remember processed quizzes between runs (will reprocess all quizzes each time).
 
