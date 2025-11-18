@@ -1,0 +1,56 @@
+name: Daily Quiz Scraper
+
+on:
+  schedule:
+    # Run at 9:00 AM IST (3:00 AM UTC) every day
+    - cron: '0 3 * * *'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  scrape-and-send:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          # Install Chrome for Selenium
+          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          
+      - name: Run scraper
+        env:
+          LOGIN_EMAIL: ${{ secrets.LOGIN_EMAIL }}
+          LOGIN_PASSWORD: ${{ secrets.LOGIN_PASSWORD }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL: ${{ secrets.TELEGRAM_CHANNEL || 'currentadda' }}
+          GITHUB_GIST_TOKEN: ${{ secrets.GITHUB_GIST_TOKEN }}
+          GITHUB_GIST_ID: ${{ secrets.GITHUB_GIST_ID }}
+          GITHUB_SESSION_GIST_ID: ${{ secrets.GITHUB_SESSION_GIST_ID }}
+        run: |
+          python src/runner.py
+          
+      - name: Commit updated tracking file (backup)
+        # This step is optional if using GitHub Gist for state management
+        # It provides a local backup of the tracking file
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/scraped_urls.json data/session.json || true
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update scraped URLs and session [skip ci]" || true
+          git push || true
+        continue-on-error: true

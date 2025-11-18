@@ -1,0 +1,236 @@
+"""
+HTML Parser for extracting quiz data from pendulumedu.com quiz pages.
+"""
+
+from dataclasses import dataclass
+from typing import Dict, List
+from bs4 import BeautifulSoup
+from datetime import datetime
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class QuizQuestion:
+    """Represents a single quiz question with options, answer, and explanation."""
+    question_number: int
+    question_text: str
+    options: Dict[str, str]  # {'A': 'option text', 'B': '...', ...}
+    correct_answer: str  # 'A', 'B', 'C', or 'D'
+    explanation: str
+
+
+@dataclass
+class QuizData:
+    """Represents complete quiz data with all questions."""
+    source_url: str
+    questions: List[QuizQuestion]
+    extracted_date: str
+
+
+class QuizParser:
+    """Parser for extracting structured quiz data from HTML."""
+    
+    def __init__(self):
+        """Initialize the quiz parser."""
+        pass
+    
+    def parse_quiz(self, html: str, url: str) -> QuizData:
+        """
+        Extract all questions, options, answers, and explanations from quiz HTML.
+        
+        Args:
+            html: HTML content of the quiz page (after solution reveal)
+            url: Source URL of the quiz
+            
+        Returns:
+            QuizData object with structured content
+            
+        Raises:
+            ValueError: If required elements are not found in HTML
+        """
+        soup = BeautifulSoup(html, 'html.parser')
+        questions = []
+        
+        # Find all question sections
+        question_sections = soup.find_all('div', class_='q-section-inner-sol')
+        
+        if not question_sections:
+            logger.warning("No question sections found. Trying alternative selector.")
+            # Try alternative selector if the main one doesn't work
+            question_sections = soup.find_all('div', class_='q-section-inner')
+        
+        if not question_sections:
+            raise ValueError("No question sections found in HTML")
+        
+        logger.info(f"Found {len(question_sections)} question sections")
+        
+        for idx, section in enumerate(question_sections, start=1):
+            try:
+                question = self._parse_question_section(section, idx)
+                questions.append(question)
+            except Exception as e:
+                logger.error(f"Error parsing question {idx}: {str(e)}")
+                # Continue with other questions even if one fails
+                continue
+        
+        if not questions:
+            raise ValueError("No questions could be parsed from HTML")
+        
+        return QuizData(
+            source_url=url,
+            questions=questions,
+            extracted_date=datetime.now().isoformat()
+        )
+    
+    def _parse_question_section(self, section, question_number: int) -> QuizQuestion:
+        """
+        Parse a single question section.
+        
+        Args:
+            section: BeautifulSoup element containing the question section
+            question_number: The question number
+            
+        Returns:
+            QuizQuestion object
+            
+        Raises:
+            ValueError: If required elements are missing
+        """
+        # Extract question text from q-name div
+        question_div = section.find('div', class_='q-name')
+        if not question_div:
+            raise ValueError(f"Question text not found for question {question_number}")
+        
+        question_text = question_div.get_text(strip=True)
+        
+        # Extract options from containerr-text-opt elements
+        options = self._extract_options(section)
+        
+        if not options:
+            raise ValueError(f"No options found for question {question_number}")
+        
+        # Extract correct answer from solution-sec div
+        correct_answer = self._extract_correct_answer(section)
+        
+        if not correct_answer:
+            raise ValueError(f"Correct answer not found for question {question_number}")
+        
+        # Extract explanation from ans-text div
+        explanation = self._extract_explanation(section)
+        
+        return QuizQuestion(
+            question_number=question_number,
+            question_text=question_text,
+            options=options,
+            correct_answer=correct_answer,
+            explanation=explanation
+        )
+    
+    def _extract_options(self, section) -> Dict[str, str]:
+        """
+        Extract all options from the question section.
+        
+        Args:
+            section: BeautifulSoup element containing the question section
+            
+        Returns:
+            Dictionary mapping option labels (A, B, C, D) to option text
+        """
+        options = {}
+        option_labels = ['A', 'B', 'C', 'D']
+        
+        # Find all li elements that contain options
+        # The structure is: <li><label class="containerr"><div class="containerr-text-opt">text</div></label></li>
+        option_list_items = section.find_all('li')
+        
+        for idx, li in enumerate(option_list_items):
+            if idx >= len(option_labels):
+                logger.warning(f"More than {len(option_labels)} options found, ignoring extras")
+                break
+            
+            # Find the div with class containerr-text-opt inside the li
+            option_div = li.find('div', class_='containerr-text-opt')
+            if not option_div:
+                # Skip if this li doesn't contain an option
+                continue
+            
+            option_text = option_div.get_text(strip=True)
+            # Remove any leading label if present (e.g., "A. " or "A) ")
+            option_text = self._clean_option_text(option_text)
+            options[option_labels[idx]] = option_text
+        
+        return options
+    
+    def _clean_option_text(self, text: str) -> str:
+        """
+        Clean option text by removing leading labels.
+        
+        Args:
+            text: Raw option text
+            
+        Returns:
+            Cleaned option text
+        """
+        # Remove patterns like "A. ", "A) ", "A ", etc.
+        import re
+        cleaned = re.sub(r'^[A-D][\.\)]\s*', '', text)
+        cleaned = re.sub(r'^[A-D]\s+', '', cleaned)
+        return cleaned.strip()
+    
+    def _extract_correct_answer(self, section) -> str:
+        """
+        Extract the correct answer label from the solution section.
+        
+        Args:
+            section: BeautifulSoup element containing the question section
+            
+        Returns:
+            Correct answer label ('A', 'B', 'C', or 'D')
+        """
+        solution_div = section.find('div', class_='solution-sec')
+        
+        if not solution_div:
+            return ""
+        
+        solution_text = solution_div.get_text(strip=True)
+        
+        # Look for patterns like "Answer: A", "Correct Answer: B", etc.
+        import re
+        match = re.search(r'(?:Answer|Correct Answer|Ans)[\s:]*([A-D])', solution_text, re.IGNORECASE)
+        
+        if match:
+            return match.group(1).upper()
+        
+        # If no pattern found, check if the text contains just a single letter A-D
+        if solution_text in ['A', 'B', 'C', 'D']:
+            return solution_text
+        
+        # Try to find the first occurrence of A, B, C, or D
+        for char in solution_text:
+            if char in ['A', 'B', 'C', 'D']:
+                return char
+        
+        return ""
+    
+    def _extract_explanation(self, section) -> str:
+        """
+        Extract the explanation text from the answer section.
+        
+        Args:
+            section: BeautifulSoup element containing the question section
+            
+        Returns:
+            Explanation text (may be empty string if not found)
+        """
+        explanation_div = section.find('div', class_='ans-text')
+        
+        if not explanation_div:
+            return ""
+        
+        # Get text with preserved line breaks
+        explanation_text = explanation_div.get_text(separator='\n', strip=True)
+        
+        return explanation_text

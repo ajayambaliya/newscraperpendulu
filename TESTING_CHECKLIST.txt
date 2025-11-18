@@ -1,0 +1,204 @@
+================================================================================
+PENDULUMEDU QUIZ SCRAPER - LOCAL TESTING CHECKLIST
+================================================================================
+
+BEFORE YOU START:
+[ ] Python 3.10+ installed
+[ ] Git installed
+[ ] Text editor ready (VS Code, Notepad++, etc.)
+
+STEP 1: SETUP ENVIRONMENT
+[ ] Run: setup_local.bat
+[ ] Virtual environment created (venv folder exists)
+[ ] Dependencies installed successfully
+[ ] No error messages during installation
+
+STEP 2: GET CREDENTIALS
+[ ] Pendulumedu.com account ready
+    Email: _______________________________
+    Password: (keep secure)
+
+[ ] Telegram bot created via @BotFather
+    Bot name: _______________________________
+    Bot username: _______________________________
+    Bot token: (copy to .env)
+
+[ ] Telegram channel created
+    Channel name: _______________________________
+    Channel username: @_______________________________
+
+[ ] Bot added to channel as administrator
+[ ] Bot has "Post Messages" permission granted
+
+STEP 3: CONFIGURE .ENV FILE
+[ ] Open .env file in text editor
+[ ] Add LOGIN_EMAIL
+[ ] Add LOGIN_PASSWORD
+[ ] Add TELEGRAM_BOT_TOKEN (full token with colon)
+[ ] Add TELEGRAM_CHANNEL (without @ symbol)
+[ ] Save .env file
+[ ] Verify no extra spaces or quotes
+
+STEP 4: INSTALL GUJARATI FONT
+[ ] Download Noto Sans Gujarati from Google Fonts
+[ ] Extract ZIP file
+[ ] Install .ttf font files (right-click → Install for all users)
+[ ] Verify in Control Panel → Fonts
+[ ] Restart terminal/command prompt
+
+STEP 5: ACTIVATE VIRTUAL ENVIRONMENT
+[ ] Open command prompt in project folder
+[ ] Run: venv\Scripts\activate
+[ ] See (venv) in prompt
+
+STEP 6: TEST AUTHENTICATION
+[ ] Create test_local_auth.py (see LOCAL_TESTING_GUIDE.md)
+[ ] Run: python test_local_auth.py
+[ ] See: "✓ Authentication successful!"
+[ ] If fails, verify credentials in .env
+
+STEP 7: TEST SCRAPING
+[ ] Create test_local_scraper.py
+[ ] Run: python test_local_scraper.py
+[ ] See: "✓ Found X quiz URLs"
+[ ] See: "✓ Retrieved X characters of HTML"
+
+STEP 8: TEST PARSING
+[ ] Create test_local_parser.py
+[ ] Run: python test_local_parser.py
+[ ] See: "✓ Parsed X questions"
+[ ] See question preview with options
+
+STEP 9: TEST TRANSLATION
+[ ] Create test_local_translation.py
+[ ] Run: python test_local_translation.py
+[ ] See English and Gujarati text pairs
+[ ] Verify Gujarati text is not garbled
+
+STEP 10: TEST PDF GENERATION
+[ ] Create test_local_pdf.py
+[ ] Run: python test_local_pdf.py
+[ ] See: "✓ PDF generated successfully!"
+[ ] Open PDF from output/ folder
+[ ] Verify Gujarati text displays correctly
+[ ] Check formatting looks good
+
+STEP 11: TEST TELEGRAM SENDING
+[ ] Create test_local_telegram.py
+[ ] Run: python test_local_telegram.py
+[ ] See: "✓ PDF sent successfully to @channel!"
+[ ] Open Telegram channel
+[ ] Verify test PDF received
+[ ] Check PDF opens and displays correctly
+
+STEP 12: RUN FULL SYSTEM
+[ ] Run: python src/runner.py
+[ ] Watch logs for each step
+[ ] No error messages
+[ ] See: "All quizzes processed successfully!"
+[ ] Check output/ folder for PDFs
+[ ] Check Telegram channel for new PDFs
+[ ] Verify data/scraped_urls.json updated
+
+STEP 13: RUN UNIT TESTS
+[ ] Run: pytest tests/ -v
+[ ] All tests pass
+[ ] No failures or errors
+
+STEP 14: VERIFY RESULTS
+[ ] PDFs in output/ folder
+[ ] PDFs have correct date/time in filename
+[ ] PDFs open without errors
+[ ] Gujarati text displays correctly in PDFs
+[ ] Questions, options, answers visible
+[ ] Explanations included
+[ ] Branding/formatting looks professional
+
+[ ] Telegram channel has new messages
+[ ] PDFs received in channel
+[ ] Caption text correct
+[ ] PDFs downloadable from Telegram
+
+[ ] data/scraped_urls.json exists
+[ ] Contains processed URLs
+[ ] JSON format is valid
+
+STEP 15: TEST DUPLICATE PREVENTION
+[ ] Run: python src/runner.py again
+[ ] See: "No new quizzes to process"
+[ ] Confirms tracking works
+
+STEP 16: READY FOR DEPLOYMENT
+[ ] All local tests pass
+[ ] PDFs generate correctly
+[ ] Telegram delivery works
+[ ] No errors in any component
+[ ] Satisfied with output quality
+
+NEXT: DEPLOY TO GITHUB ACTIONS
+[ ] Read SECRETS_SETUP.md
+[ ] Configure GitHub Secrets
+[ ] Enable GitHub Actions
+[ ] Test manual workflow trigger
+[ ] Monitor first automated run
+
+================================================================================
+TROUBLESHOOTING QUICK REFERENCE
+================================================================================
+
+Authentication fails:
+→ Check LOGIN_EMAIL and LOGIN_PASSWORD in .env
+→ Try logging in manually at pendulumedu.com
+→ Verify account is active
+
+Font errors:
+→ Install Noto Sans Gujarati font
+→ Restart terminal after installation
+→ Check font in Control Panel → Fonts
+
+Telegram "Unauthorized":
+→ Verify TELEGRAM_BOT_TOKEN is complete
+→ Check for extra spaces in .env
+→ Ensure token format: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz
+
+Telegram "Chat not found":
+→ Verify channel username in .env
+→ Ensure bot is added to channel
+→ Check bot has admin permissions
+→ Verify bot can post messages
+
+Module not found:
+→ Activate virtual environment: venv\Scripts\activate
+→ Install dependencies: pip install -r requirements.txt
+
+No quizzes found:
+→ Check authentication succeeded
+→ Verify website is accessible
+→ Check if website structure changed
+
+================================================================================
+SUPPORT DOCUMENTS
+================================================================================
+
+Quick start (5 min):        QUICKSTART.md
+Detailed testing guide:     LOCAL_TESTING_GUIDE.md
+Full documentation:         README.md
+GitHub Actions setup:       SECRETS_SETUP.md
+Testing summary:            TESTING_SUMMARY.md
+This checklist:             TESTING_CHECKLIST.txt
+
+================================================================================
+NOTES
+================================================================================
+
+Date tested: _______________
+Tested by: _______________
+Issues found: _______________________________________________
+_______________________________________________
+_______________________________________________
+
+All tests passed: [ ] YES  [ ] NO
+
+Ready for production: [ ] YES  [ ] NO
+
+================================================================================
