@@ -1,0 +1,18 @@
+{
+  "name": "pendulumedu-quiz-scraper",
+  "version": "1.0.0",
+  "description": "Modern PDF generation for Gujarati quiz content",
+  "type": "module",
+  "scripts": {
+    "build:css": "tailwindcss -i ./templates/input.css -o ./templates/output.css --minify",
+    "build:css:prod": "NODE_ENV=production tailwindcss -i ./templates/input.css -o ./templates/output.css --minify",
+    "generate:pdf": "node generate_pdf.js",
+    "dev": "tailwindcss -i ./templates/input.css -o ./templates/output.css --watch"
+  },
+  "dependencies": {
+    "puppeteer": "^21.6.0"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

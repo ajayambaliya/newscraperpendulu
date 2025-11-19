@@ -447,6 +447,61 @@ logger.debug("Debug message here")
 
 ## Configuration
 
+### PDF Theme Configuration
+
+The enhanced PDF system supports multiple visual themes and customization options through environment variables:
+
+#### Available Environment Variables
+
+| Variable | Default | Options | Description |
+|----------|---------|---------|-------------|
+| `PDF_THEME` | `light` | `light`, `classic`, `vibrant` | Color theme for the PDF |
+| `ENABLE_SVG_BACKGROUNDS` | `true` | `true`, `false` | Enable/disable decorative SVG backgrounds |
+| `SVG_BACKGROUND_TYPE` | `wave` | `wave`, `blob`, `none` | Type of SVG background pattern |
+
+#### Theme Options
+
+**Light Theme** (`light`)
+- Modern, clean design with blue accents
+- Ideal for professional, easy-to-read documents
+- Primary: Blue (#2196F3), Success: Green (#4CAF50)
+
+**Classic Theme** (`classic`)
+- Traditional, formal appearance
+- Darker blue tones with orange accents
+- Primary: Dark Blue (#1976D2), Accent: Orange (#FF9800)
+
+**Vibrant Theme** (`vibrant`)
+- Bold, energetic design with pink and purple
+- Eye-catching for social media sharing
+- Primary: Pink (#E91E63), Secondary: Purple (#9C27B0)
+
+#### SVG Background Types
+
+- **Wave**: Smooth wave patterns at the bottom of pages
+- **Blob**: Organic blob shapes for decorative effect
+- **None**: Solid color backgrounds only
+
+#### Local Configuration
+
+Add to your `.env` file:
+```env
+PDF_THEME=light
+ENABLE_SVG_BACKGROUNDS=true
+SVG_BACKGROUND_TYPE=wave
+```
+
+#### GitHub Actions Configuration
+
+Set as repository variables (Settings → Secrets and variables → Actions → Variables):
+1. Click "New repository variable"
+2. Add each variable:
+   - Name: `PDF_THEME`, Value: `light`
+   - Name: `ENABLE_SVG_BACKGROUNDS`, Value: `true`
+   - Name: `SVG_BACKGROUND_TYPE`, Value: `wave`
+
+**Note**: These are repository variables (not secrets) since they don't contain sensitive information.
+
 ### Customizing the PDF
 
 Edit `src/pdf_generator.py` to customize:
@@ -454,6 +509,11 @@ Edit `src/pdf_generator.py` to customize:
 - Colors and fonts
 - Page layout and spacing
 - Cover page design
+
+For advanced customization, see the comprehensive documentation:
+- **[MODERN_PDF_SYSTEM.md](MODERN_PDF_SYSTEM.md)** - Complete system overview, architecture, and troubleshooting
+- **[THEME_CUSTOMIZATION_GUIDE.md](THEME_CUSTOMIZATION_GUIDE.md)** - How to create and customize color themes
+- **[COMPONENT_CUSTOMIZATION_GUIDE.md](COMPONENT_CUSTOMIZATION_GUIDE.md)** - How to modify individual UI components
 
 ### Changing the Schedule
 

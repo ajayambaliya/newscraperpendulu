@@ -1,0 +1,56 @@
+<div class="cover-page relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 overflow-hidden">
+    <!-- SVG Background -->
+    <div class="svg-background absolute inset-0 pointer-events-none">
+        {{ svg_background|safe }}
+    </div>
+    
+    <!-- Main Content Container -->
+    <div class="relative z-10 w-full max-w-4xl mx-auto px-8 py-16">
+        <!-- Glassmorphism Card -->
+        <div class="glass-card rounded-3xl p-12 text-center space-y-8">
+            <!-- Channel Name with Gradient Text -->
+            <h1 class="gradient-text text-5xl font-bold mb-4">
+                {{ channel_name }}
+            </h1>
+            
+            <!-- Quiz Title -->
+            <h2 class="text-4xl font-semibold text-gray-800 mb-8">
+                {{ title }}
+            </h2>
+            
+            <!-- Info Grid -->
+            <div class="info-grid grid grid-cols-3 gap-6 mt-12">
+                <!-- Date -->
+                <div class="info-item bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+                    <div class="w-8 h-8 mx-auto mb-3 text-3xl">📅</div>
+                    <div class="text-sm text-gray-600 font-medium">તારીખ</div>
+                    <div class="text-lg font-bold text-gray-800">{{ date }}</div>
+                </div>
+                
+                <!-- Question Count -->
+                <div class="info-item bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+                    <div class="w-8 h-8 mx-auto mb-3 text-3xl">📝</div>
+                    <div class="text-sm text-gray-600 font-medium">પ્રશ્નો</div>
+                    <div class="text-lg font-bold text-gray-800">{{ question_count }}</div>
+                </div>
+                
+                <!-- Estimated Time -->
+                <div class="info-item bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+                    <div class="w-8 h-8 mx-auto mb-3 text-3xl">⏱️</div>
+                    <div class="text-sm text-gray-600 font-medium">સમય</div>
+                    <div class="text-lg font-bold text-gray-800">{{ estimated_time }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer with Channel Link -->
+        <div class="text-center mt-8">
+            <div class="inline-block bg-white/80 backdrop-blur-sm rounded-full px-8 py-4 shadow-lg">
+                <p class="text-gray-700 font-medium">
+                    <span class="text-blue-600 font-semibold">📱 Join us:</span> 
+                    <span class="font-bold">{{ channel_link }}</span>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

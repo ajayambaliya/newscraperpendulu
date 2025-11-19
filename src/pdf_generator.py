@@ -1,208 +1,222 @@
 """
-Ultra-Modern PDF Generator with Modular Template System
+Modern PDF Generator - HTML to PDF using Puppeteer
+Beautiful, responsive PDFs with perfect Gujarati rendering
 """
 
 import os
+import subprocess
 from datetime import datetime
-from typing import List
-import logging
 from pathlib import Path
+import logging
 
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import SimpleDocTemplate, PageBreak
-
+from .html_generator import HTMLGenerator
 from .translator import TranslatedQuizData
-from .pdf_templates import ThemeManager
-from .pdf_styles import LayoutSystem
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 class PDFGenerator:
-    """Ultra-modern PDF generator with complete separation of concerns"""
+    """Modern PDF generator using HTML → Puppeteer → PDF pipeline"""
     
-    def __init__(self, output_dir: str = "pdfs", theme: str = "current_affairs"):
-        """Initialize with theme support and modular architecture"""
+    def __init__(self, output_dir: str = "pdfs", theme: str = "light"):
+        """Initialize PDF generator
+        
+        Args:
+            output_dir: Directory for PDF output files
+            theme: Theme name for PDF styling ('light', 'classic', 'vibrant')
+        """
         self.output_dir = output_dir
-        self.theme_name = theme
+        self.theme = theme
+        self.html_generator = HTMLGenerator(theme=theme)
         
-        # Setup
-        self._setup_output_directory()
-        self._register_fonts()
-        
-        # Initialize theme system
-        self.theme_manager = ThemeManager(theme)
-        self.layouts = self.theme_manager.get_layouts()
-        self.stylesheet = self.theme_manager.get_stylesheet()
-        self.layout_system = LayoutSystem(self.stylesheet.tokens)
+        # Ensure output directories exist
+        Path(self.output_dir).mkdir(parents=True, exist_ok=True)
+        Path("output").mkdir(parents=True, exist_ok=True)
         
         # Branding
         self.channel_name = "CurrentAdda"
         self.channel_link = "t.me/currentadda"
         
-        logger.info(f"Ultra-Modern PDF Generator initialized with '{theme}' theme")
+        logger.info(f"Modern PDF Generator initialized (HTML → Puppeteer) with theme: {theme}")
     
-    def _setup_output_directory(self):
-        """Create output directory"""
-        Path(self.output_dir).mkdir(parents=True, exist_ok=True)
-        logger.info(f"Output directory ready: {self.output_dir}")
-    
-    def _download_font_from_google(self, font_url: str, font_filename: str) -> str:
-        """Download and cache Gujarati font"""
-        import requests
-        
-        fonts_dir = Path.home() / '.pendulumedu_fonts'
-        fonts_dir.mkdir(exist_ok=True)
-        font_path = fonts_dir / font_filename
-        
-        if not font_path.exists():
-            logger.info("Downloading Gujarati font from Google Fonts...")
+    def _ensure_node_dependencies(self):
+        """Ensure Node.js dependencies are installed"""
+        if not Path("node_modules").exists():
+            logger.info("Installing Node.js dependencies...")
             try:
-                response = requests.get(font_url, timeout=30)
-                response.raise_for_status()
-                
-                with open(font_path, 'wb') as f:
-                    f.write(response.content)
-                
-                logger.info(f"Font cached: {font_path}")
-            except Exception as e:
-                logger.error(f"Font download failed: {e}")
+                subprocess.run(
+                    ["npm", "install"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    shell=True
+                )
+                logger.info("✓ Node.js dependencies installed")
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Failed to install Node.js dependencies: {e.stderr}")
                 raise
-        else:
-            logger.info(f"Using cached font: {font_path}")
-        
-        return str(font_path)
     
-    def _register_fonts(self):
-        """Register Noto Sans Gujarati fonts from local fonts directory"""
-        try:
-            fonts_dir = Path("fonts")
-            
-            # Define font mappings for different weights
-            font_files = {
-                'NotoSansGujarati': 'NotoSansGujarati-Regular.ttf',
-                'NotoSansGujarati-Bold': 'NotoSansGujarati-Bold.ttf',
-                'NotoSansGujarati-Medium': 'NotoSansGujarati-Medium.ttf',
-                'NotoSansGujarati-Light': 'NotoSansGujarati-Light.ttf',
-                'NotoSansGujarati-SemiBold': 'NotoSansGujarati-SemiBold.ttf'
-            }
-            
-            fonts_registered = 0
-            
-            # Register each font weight
-            for font_name, font_file in font_files.items():
-                font_path = fonts_dir / font_file
-                if font_path.exists():
-                    pdfmetrics.registerFont(TTFont(font_name, str(font_path)))
-                    logger.info(f"Local font registered: {font_name} -> {font_path}")
-                    fonts_registered += 1
-                else:
-                    logger.warning(f"Font file not found: {font_path}")
-            
-            # Register the main 'Gujarati' alias for backward compatibility
-            if fonts_registered > 0:
-                # Use regular weight as the default 'Gujarati' font
-                main_font_path = fonts_dir / 'NotoSansGujarati-Regular.ttf'
-                if main_font_path.exists():
-                    pdfmetrics.registerFont(TTFont('Gujarati', str(main_font_path)))
-                    logger.info(f"Main Gujarati font registered: {main_font_path}")
-                    fonts_registered += 1
-            
-            if fonts_registered == 0:
-                raise Exception("No Gujarati fonts could be registered from local fonts directory")
-            
-            logger.info(f"Successfully registered {fonts_registered} Gujarati font variants")
+    def _build_css(self, force_rebuild: bool = False):
+        """Build Tailwind CSS with optimization
         
+        Args:
+            force_rebuild: Force rebuild even if CSS exists
+        """
+        # Skip if CSS already exists and not forcing rebuild
+        if Path("templates/output.css").exists() and not force_rebuild:
+            logger.info("✓ Tailwind CSS already built")
+            return
+            
+        logger.info("Building optimized Tailwind CSS...")
+        try:
+            # Use production build for optimized, purged CSS
+            subprocess.run(
+                ["npm", "run", "build:css:prod"],
+                check=True,
+                capture_output=True,
+                text=True,
+                shell=True
+            )
+            logger.info("✓ Tailwind CSS built and optimized")
+        except subprocess.CalledProcessError as e:
+            # Fallback to regular build if production build fails
+            logger.warning(f"Production CSS build failed, trying regular build: {e.stderr}")
+            try:
+                subprocess.run(
+                    ["npm", "run", "build:css"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    shell=True
+                )
+                logger.info("✓ Tailwind CSS built")
+            except subprocess.CalledProcessError as e2:
+                logger.warning(f"Tailwind CSS build warning: {e2.stderr}")
+                # Continue anyway - CSS might already be built
+        except FileNotFoundError:
+            logger.warning("npm not found in PATH, skipping CSS build")
+            # Continue anyway - CSS might already be built
+    
+    def _validate_file_size(self, pdf_path: str, question_count: int):
+        """Validate PDF file size and log warnings if it exceeds recommended limits
+        
+        Args:
+            pdf_path: Path to the generated PDF file
+            question_count: Number of questions in the quiz
+        """
+        try:
+            # Get file size in bytes
+            file_size_bytes = os.path.getsize(pdf_path)
+            
+            # Convert to KB for easier reading
+            file_size_kb = file_size_bytes / 1024
+            
+            # Calculate size per question
+            size_per_question_kb = file_size_kb / question_count if question_count > 0 else file_size_kb
+            
+            # Log file size information
+            logger.info(f"PDF file size: {file_size_kb:.2f} KB "
+                       f"({size_per_question_kb:.2f} KB per question)")
+            
+            # Check if size exceeds 100KB per question threshold
+            max_size_per_question = 100  # KB
+            if size_per_question_kb > max_size_per_question:
+                logger.warning(
+                    f"⚠️  PDF file size exceeds recommended limit!\n"
+                    f"   Current: {size_per_question_kb:.2f} KB per question\n"
+                    f"   Recommended: {max_size_per_question} KB per question\n"
+                    f"   Total size: {file_size_kb:.2f} KB for {question_count} questions\n"
+                    f"\n"
+                    f"   Optimization suggestions:\n"
+                    f"   1. Disable SVG backgrounds: enable_svg_backgrounds=False\n"
+                    f"   2. Reduce image quality or remove decorative elements\n"
+                    f"   3. Simplify CSS by removing unused Tailwind classes\n"
+                    f"   4. Use simpler fonts or reduce font weights\n"
+                    f"   5. Optimize SVG files with SVGO or similar tools\n"
+                    f"   6. Consider splitting large quizzes into multiple PDFs"
+                )
+            else:
+                logger.info(f"✓ PDF file size is within recommended limits "
+                           f"({size_per_question_kb:.2f} KB per question)")
+                
+        except FileNotFoundError:
+            logger.error(f"Cannot validate file size: PDF file not found at {pdf_path}")
         except Exception as e:
-            logger.error(f"Font registration failed: {e}")
-            raise
+            logger.error(f"Error validating file size: {e}")
+            # Don't raise - file size validation is not critical
     
-    def generate_pdf(self, quiz_data: TranslatedQuizData) -> str:
-        """Generate ultra-modern PDF using modular template system"""
-        date_str = datetime.now().strftime("%Y%m%d")
-        filename = f"current_affairs_quiz_{date_str}.pdf"
-        filepath = os.path.join(self.output_dir, filename)
+    def generate_pdf(self, quiz_data: TranslatedQuizData, 
+                     theme: str = None,
+                     enable_svg_backgrounds: bool = True,
+                     svg_background_type: str = "wave") -> str:
+        """Generate PDF from quiz data
         
-        logger.info(f"Generating ultra-modern PDF with '{self.theme_name}' theme")
+        Args:
+            quiz_data: Translated quiz data containing questions and answers
+            theme: Theme name for PDF styling (overrides instance theme if provided)
+            enable_svg_backgrounds: Whether to include SVG backgrounds in the PDF
+            svg_background_type: Type of SVG background ('wave', 'blob', 'none')
+            
+        Returns:
+            Path to the generated PDF file
+        """
+        date_str = datetime.now().strftime("%Y%m%d")
+        
+        # Use provided theme or fall back to instance theme
+        active_theme = theme if theme is not None else self.theme
+        
+        logger.info(f"Generating modern PDF with Puppeteer (theme: {active_theme}, "
+                   f"SVG backgrounds: {enable_svg_backgrounds}, type: {svg_background_type})...")
         
         try:
-            # Create document with modern layout system
-            doc = SimpleDocTemplate(
-                filepath,
-                pagesize=A4,
-                rightMargin=self.layout_system.MARGIN,
-                leftMargin=self.layout_system.MARGIN,
-                topMargin=self.layout_system.MARGIN,
-                bottomMargin=self.layout_system.MARGIN
+            # Step 1: Ensure dependencies
+            self._ensure_node_dependencies()
+            
+            # Step 2: Build CSS
+            self._build_css()
+            
+            # Step 3: Generate HTML with theme and SVG options
+            logger.info("Generating HTML from quiz data...")
+            html = self.html_generator.generate_html(
+                quiz_data,
+                self.channel_name,
+                self.channel_link,
+                enable_svg_backgrounds=enable_svg_backgrounds,
+                svg_background_type=svg_background_type
             )
             
-            story = []
+            # Save HTML
+            html_path = f"output/quiz_{date_str}.html"
+            self.html_generator.save_html(html, html_path)
+            logger.info(f"✓ HTML saved: {html_path}")
             
-            # Generate cover page using template
-            cover_elements = self.layouts.cover_page_ultra(
-                quiz_data, self.channel_name, self.channel_link
+            # Step 4: Generate PDF using Puppeteer
+            pdf_filename = f"current_affairs_quiz_{date_str}.pdf"
+            pdf_path = os.path.join(self.output_dir, pdf_filename)
+            
+            logger.info("Converting HTML to PDF with Puppeteer...")
+            result = subprocess.run(
+                ["node", "generate_pdf.js", html_path, pdf_path],
+                check=True,
+                capture_output=True,
+                text=True,
+                shell=True
             )
-            story.extend(cover_elements)
-            story.append(PageBreak())
             
-            # Generate content pages using template
-            content_elements = self.layouts.questions_section(quiz_data)
-            story.extend(content_elements)
+            logger.info(result.stdout)
+            logger.info(f"✓ PDF generated successfully: {pdf_path}")
             
-            # Build PDF
-            doc.build(story)
+            # Step 5: Validate file size
+            self._validate_file_size(pdf_path, len(quiz_data.questions))
             
-            logger.info(f"PDF generated successfully: {filepath}")
-            return filepath
-        
+            return pdf_path
+            
+        except subprocess.CalledProcessError as e:
+            logger.error(f"PDF generation failed: {e.stderr}")
+            raise
         except Exception as e:
             logger.error(f"PDF generation failed: {e}")
             import traceback
             traceback.print_exc()
             raise
-    
-    def set_theme(self, theme_name: str):
-        """Switch to a different theme"""
-        if theme_name not in self.get_available_themes():
-            raise ValueError(f"Unknown theme: {theme_name}")
-        
-        self.theme_name = theme_name
-        self.theme_manager.switch_theme(theme_name)
-        self.layouts = self.theme_manager.get_layouts()
-        self.stylesheet = self.theme_manager.get_stylesheet()
-        self.layout_system = LayoutSystem(self.stylesheet.tokens)
-        
-        logger.info(f"Theme switched to: {theme_name}")
-    
-    def get_available_themes(self) -> List[str]:
-        """Get list of available themes"""
-        return self.theme_manager.get_available_themes()
-    
-    def preview_theme_colors(self, theme_name: str = None) -> dict:
-        """Preview colors for current or specified theme"""
-        if theme_name and theme_name != self.theme_name:
-            temp_manager = ThemeManager(theme_name)
-            tokens = temp_manager.get_stylesheet().tokens
-        else:
-            tokens = self.stylesheet.tokens
-        
-        return {
-            'primary': tokens.primary,
-            'secondary': tokens.secondary,
-            'accent': tokens.accent,
-            'success': tokens.success,
-            'warning': tokens.warning,
-            'text_primary': tokens.text_primary,
-            'text_secondary': tokens.text_secondary,
-        }
-    
-    def get_theme_info(self) -> dict:
-        """Get current theme information"""
-        return {
-            'name': self.theme_name,
-            'colors': self.preview_theme_colors(),
-            'available_themes': self.get_available_themes()
-        }

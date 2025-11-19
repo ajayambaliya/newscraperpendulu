@@ -18,6 +18,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
           
       - name: Install system dependencies
         run: |
@@ -31,6 +37,23 @@ jobs:
       - name: Install Python dependencies
         run: |
           pip install -r requirements.txt
+      
+      - name: Install Node.js dependencies
+        run: |
+          npm install
+      
+      - name: Build Tailwind CSS
+        run: |
+          npm run build:css
+          
+      - name: Verify CSS compilation
+        run: |
+          if [ ! -f templates/output.css ]; then
+            echo "Error: CSS compilation failed - templates/output.css not found"
+            exit 1
+          fi
+          echo "CSS compilation successful"
+          ls -lh templates/output.css
           
       - name: Run scraper
         env:
@@ -41,6 +64,10 @@ jobs:
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
           GIST_ID: ${{ secrets.GIST_ID }}
           SESSION_GIST_ID: ${{ secrets.SESSION_GIST_ID }}
+          # PDF Theme Configuration
+          PDF_THEME: ${{ vars.PDF_THEME || 'light' }}
+          ENABLE_SVG_BACKGROUNDS: ${{ vars.ENABLE_SVG_BACKGROUNDS || 'true' }}
+          SVG_BACKGROUND_TYPE: ${{ vars.SVG_BACKGROUND_TYPE || 'wave' }}
         run: |
           python src/runner.py
           

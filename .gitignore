@@ -23,6 +23,13 @@ wheels/
 .installed.cfg
 *.egg
 
+# Node.js
+node_modules/
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
 # Environment variables
 .env
 .env.local
@@ -30,6 +37,12 @@ wheels/
 # Generated PDFs
 pdfs/
 *.pdf
+
+# Generated HTML
+output/
+
+# Generated CSS
+templates/output.css
 
 # Session data
 data/session.json

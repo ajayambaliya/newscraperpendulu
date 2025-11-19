@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Gujarati:wght@400;500;600;700;800;900&display=swap');
+
+@layer base {
+  body {
+    @apply font-gujarati;
+  }
+}
+
+@layer components {
+  /* Legacy components - kept for backward compatibility */
+  .question-card {
+    @apply bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-6;
+    page-break-inside: avoid;
+  }
+  
+  .option-box {
+    @apply border border-gray-300 rounded-lg p-3 mb-2 flex items-start gap-3;
+  }
+  
+  .option-correct {
+    @apply bg-success-50 border-success-500 border-2;
+  }
+  
+  .explanation-box {
+    @apply bg-primary-50 border-l-4 border-primary-500 p-4 rounded-r-lg mt-4;
+  }
+
+  /* Glassmorphism utilities */
+  .glass-card {
+    @apply bg-white/40 backdrop-blur-xl border border-white/20 shadow-2xl;
+  }
+  
+  .glass-card-dark {
+    @apply bg-gray-900/40 backdrop-blur-xl border border-gray-700/20 shadow-2xl;
+  }
+
+  /* Modern component styles */
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600;
+  }
+  
+  .question-card-modern {
+    @apply bg-white rounded-3xl shadow-xl p-8 mb-8 ring-1 ring-gray-200;
+    page-break-inside: avoid;
+    box-shadow: 0 10px 40px -10px rgba(33, 150, 243, 0.3);
+  }
+  
+  .option-bubble {
+    @apply flex items-center gap-4 p-4 rounded-2xl border-2 border-gray-200 mb-3 transition-all duration-300;
+  }
+  
+  .option-bubble:hover {
+    @apply shadow-md;
+  }
+  
+  .option-correct-gradient {
+    @apply bg-gradient-to-r from-green-50 to-emerald-50 border-green-500 shadow-lg ring-2 ring-green-200;
+  }
+  
+  .explanation-box-modern {
+    @apply mt-6 p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border-l-4 border-blue-500 backdrop-blur-sm;
+    page-break-inside: avoid;
+  }
+  
+  .question-number-badge {
+    @apply inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white font-bold shadow-lg;
+  }
+}
+
+/* Print-specific styles */
+@page {
+  size: A4;
+  margin: 15mm 20mm;
+}
+
+@media print {
+  /* Prevent page breaks inside cards */
+  .question-card,
+  .question-card-modern,
+  .explanation-box,
+  .explanation-box-modern {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  /* Optimize colors for print */
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+  
+  /* Ensure backgrounds print correctly */
+  .option-correct-gradient,
+  .explanation-box-modern,
+  .glass-card {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  /* Optimize shadows for print */
+  .question-card-modern,
+  .option-bubble {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Ensure proper spacing between elements */
+  .question-card-modern {
+    margin-bottom: 8mm;
+  }
+}

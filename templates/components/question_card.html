@@ -1,0 +1,61 @@
+<div class="question-card-modern no-break">
+    <!-- Question Header -->
+    <div class="question-header flex items-start gap-4 mb-6">
+        <!-- Question Number Badge -->
+        <span class="question-number-badge flex-shrink-0">
+            {{ number }}
+        </span>
+        
+        <!-- Question Text -->
+        <h3 class="question-text text-xl font-semibold text-gray-800 leading-relaxed flex-1">
+            {{ question }}
+        </h3>
+    </div>
+    
+    <!-- Options Container -->
+    <div class="options-container space-y-3 mb-6">
+        {% for option in options %}
+            <div class="option-bubble {% if option.is_correct %}option-correct-gradient{% endif %}">
+                <!-- Option Label (A, B, C, D) -->
+                <span class="option-label flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full 
+                             {% if option.is_correct %}bg-green-600 text-white{% else %}bg-gray-200 text-gray-700{% endif %} 
+                             font-bold text-sm">
+                    {{ option.label }}
+                </span>
+                
+                <!-- Option Text -->
+                <span class="option-text flex-1 text-gray-800 font-medium leading-relaxed">
+                    {{ option.text }}
+                </span>
+                
+                <!-- Checkmark Icon for Correct Answer -->
+                {% if option.is_correct %}
+                <span class="check-icon flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-600 text-white text-sm font-bold">
+                    ✓
+                </span>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Explanation (if present) -->
+    {% if explanation %}
+        <div class="explanation-box-modern">
+            <!-- Explanation Header -->
+            <div class="explanation-header flex items-center gap-3 mb-3">
+                <!-- Info Icon -->
+                <span class="info-icon text-2xl flex-shrink-0">💡</span>
+                
+                <!-- Label -->
+                <span class="explanation-label text-lg font-bold text-blue-700">
+                    સમજૂતી:
+                </span>
+            </div>
+            
+            <!-- Explanation Text -->
+            <p class="explanation-text text-gray-700 leading-relaxed font-medium">
+                {{ explanation }}
+            </p>
+        </div>
+    {% endif %}
+</div>
