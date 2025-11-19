@@ -10,7 +10,7 @@
     "dev": "tailwindcss -i ./templates/input.css -o ./templates/output.css --watch"
   },
   "dependencies": {
-    "puppeteer": "^21.6.0"
+    "puppeteer": "^24.15.0"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.0"
