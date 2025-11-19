@@ -259,17 +259,37 @@ def main():
         logger.info("All components initialized")
         
         # Step 5: Fetch quiz listing
-        logger.info("\n[5/8] Fetching quiz listing...")
+        logger.info("\n[5/8] Fetching quiz listing from website...")
         all_quiz_urls = scraper.get_quiz_urls()
-        logger.info(f"Found {len(all_quiz_urls)} total quizzes")
+        logger.info(f"✓ Found {len(all_quiz_urls)} total quizzes on website")
+        
+        if all_quiz_urls:
+            logger.info(f"   Latest quiz: {all_quiz_urls[0]}")
+            if len(all_quiz_urls) > 1:
+                logger.info(f"   Oldest quiz: {all_quiz_urls[-1]}")
         
         # Step 6: Filter out already-processed URLs
         logger.info("\n[6/8] Filtering new quizzes...")
+        logger.info(f"   Processed URLs in database: {len(processed_urls)}")
+        logger.info(f"   Total URLs from website: {len(all_quiz_urls)}")
+        
         new_quiz_urls = [url for url in all_quiz_urls if not state_manager.is_processed(url)]
-        logger.info(f"Found {len(new_quiz_urls)} new quizzes to process")
+        already_processed = len(all_quiz_urls) - len(new_quiz_urls)
+        
+        logger.info(f"   Already processed: {already_processed}")
+        logger.info(f"   ✓ New quizzes to process: {len(new_quiz_urls)}")
+        
+        if new_quiz_urls:
+            logger.info(f"\n   New quiz URLs:")
+            for idx, url in enumerate(new_quiz_urls[:5], 1):  # Show first 5
+                logger.info(f"      {idx}. {url}")
+            if len(new_quiz_urls) > 5:
+                logger.info(f"      ... and {len(new_quiz_urls) - 5} more")
         
         if not new_quiz_urls:
-            logger.info("No new quizzes to process. Exiting.")
+            logger.info("\n✓ No new quizzes to process. All quizzes are up to date!")
+            logger.info(f"   Database has {len(processed_urls)} processed quizzes")
+            logger.info(f"   Website has {len(all_quiz_urls)} total quizzes")
             return 0
         
         # Step 7: Process each new quiz

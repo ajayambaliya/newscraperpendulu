@@ -51,13 +51,29 @@ class QuizScraper:
             ScraperError: If fetching or parsing fails
         """
         try:
+            # Add realistic browser headers to avoid detection
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+                'Cache-Control': 'max-age=0',
+            }
+            
+            # Add small delay to appear more human-like
+            time.sleep(1)
+            
             # Fetch the listing page
             response = self.session.get(
                 self.listing_url,
                 timeout=30,
-                headers={
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
+                headers=headers
             )
             response.raise_for_status()
             
@@ -113,12 +129,28 @@ class QuizScraper:
             ScraperError: If fetching fails
         """
         try:
+            # Add realistic browser headers
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'same-origin',
+                'Sec-Fetch-User': '?1',
+                'Referer': 'https://pendulumedu.com/quiz/current-affairs',
+            }
+            
+            # Add small delay
+            time.sleep(1)
+            
             response = self.session.get(
                 url,
                 timeout=30,
-                headers={
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
+                headers=headers
             )
             response.raise_for_status()
             
@@ -164,14 +196,24 @@ class QuizScraper:
             
             print(f"Using Selenium to submit quiz...")
             
-            # Configure Chrome options for headless mode
+            # Configure Chrome options for headless mode with anti-detection
             chrome_options = Options()
             chrome_options.add_argument('--headless=new')
             chrome_options.add_argument('--no-sandbox')
             chrome_options.add_argument('--disable-dev-shm-usage')
             chrome_options.add_argument('--disable-gpu')
             chrome_options.add_argument('--window-size=1920,1080')
-            chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+            chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+            chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36')
+            chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            chrome_options.add_experimental_option('useAutomationExtension', False)
+            
+            # Add preferences to appear more like a real browser
+            prefs = {
+                "profile.default_content_setting_values.notifications": 2,
+                "profile.default_content_settings.popups": 0,
+            }
+            chrome_options.add_experimental_option("prefs", prefs)
             
             # Initialize the driver
             # Try with webdriver-manager first, fall back to system Chrome
@@ -184,10 +226,19 @@ class QuizScraper:
                 # Fall back to system Chrome (works if Chrome and ChromeDriver are in PATH)
                 driver = webdriver.Chrome(options=chrome_options)
             
+            # Execute stealth scripts to avoid detection
+            driver.execute_cdp_cmd('Network.setUserAgentOverride', {
+                "userAgent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+            })
+            driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            
             try:
                 # Load the quiz page
                 print(f"Loading quiz page...")
                 driver.get(url)
+                
+                # Add random delay to appear more human-like
+                time.sleep(2 + (time.time() % 2))  # 2-4 seconds
                 
                 # Transfer session cookies to Selenium
                 for cookie in self.session.cookies:
