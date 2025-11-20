@@ -383,15 +383,15 @@ class PDFGenerator:
                 </div>
                 
                 <div class="flex items-center justify-center gap-4 flex-wrap">
-                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-full font-bold shadow-lg">
+                    <a href="https://t.me/currentadda" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-full font-bold shadow-lg hover:shadow-xl transition-all">
                         📢 Telegram
-                    </div>
-                    <div class="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-full font-bold shadow-lg">
+                    </a>
+                    <a href="https://wa.me/918000212153?text=PDF" class="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-full font-bold shadow-lg hover:shadow-xl transition-all">
                         💬 WhatsApp
-                    </div>
-                    <div class="bg-gradient-to-r from-pink-500 to-pink-600 text-white px-6 py-3 rounded-full font-bold shadow-lg">
+                    </a>
+                    <a href="https://instagram.com/currentaddaa" class="bg-gradient-to-r from-pink-500 to-pink-600 text-white px-6 py-3 rounded-full font-bold shadow-lg hover:shadow-xl transition-all">
                         📸 Instagram
-                    </div>
+                    </a>
                 </div>
                 
                 <p class="text-sm text-gray-600 mt-6">

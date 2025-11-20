@@ -280,7 +280,26 @@ class QuizParser:
         if not explanation_div:
             return ""
         
-        # Get text with preserved line breaks
-        explanation_text = explanation_div.get_text(separator='\n', strip=True)
+        # Extract text from list items and paragraphs
+        explanation_parts = []
         
-        return explanation_text
+        # Get all list items
+        list_items = explanation_div.find_all('li')
+        for li in list_items:
+            text = li.get_text(strip=True)
+            if text:
+                explanation_parts.append(f"• {text}")
+        
+        # Get all paragraphs
+        paragraphs = explanation_div.find_all('p')
+        for p in paragraphs:
+            text = p.get_text(strip=True)
+            if text and text not in explanation_parts:  # Avoid duplicates
+                explanation_parts.append(text)
+        
+        # If no structured content found, get all text
+        if not explanation_parts:
+            explanation_text = explanation_div.get_text(separator=' ', strip=True)
+            return explanation_text
+        
+        return ' '.join(explanation_parts)
