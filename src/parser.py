@@ -190,8 +190,9 @@ class QuizParser:
         if not q_option_div:
             return options
         
-        # Find all li elements that contain options within q-option div only
-        option_list_items = q_option_div.find_all('li', recursive=False)
+        # Find all li elements that contain options within q-option div
+        # Structure: <div class="q-option"><ul><li>...</li></ul></div>
+        option_list_items = q_option_div.find_all('li')
         
         option_count = 0
         for li in option_list_items:
