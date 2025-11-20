@@ -281,9 +281,18 @@ class QuizParser:
         Returns:
             Explanation text (may be empty string if not found)
         """
-        explanation_div = section.find('div', class_='ans-text')
+        # First find the solution-sec div
+        solution_div = section.find('div', class_='solution-sec')
+        
+        if not solution_div:
+            logger.debug("No solution-sec div found")
+            return ""
+        
+        # Then find ans-text div inside solution-sec
+        explanation_div = solution_div.find('div', class_='ans-text')
         
         if not explanation_div:
+            logger.debug("No ans-text div found inside solution-sec")
             return ""
         
         # Extract text from list items and paragraphs
