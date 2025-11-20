@@ -37,6 +37,33 @@ class QuizParser:
         """Initialize the quiz parser."""
         pass
     
+    def _is_english_text(self, text: str) -> bool:
+        """
+        Detect if text is in English (not Hindi/Devanagari).
+        
+        Args:
+            text: Text to check
+            
+        Returns:
+            True if text is primarily English, False if Hindi/Devanagari
+        """
+        if not text:
+            return True
+        
+        # Count Devanagari characters (Hindi script: U+0900 to U+097F)
+        devanagari_count = sum(1 for char in text if '\u0900' <= char <= '\u097F')
+        
+        # Count ASCII/Latin characters (English)
+        english_count = sum(1 for char in text if char.isascii() and char.isalpha())
+        
+        # If more than 30% of alphabetic characters are Devanagari, it's Hindi
+        total_alpha = devanagari_count + english_count
+        if total_alpha == 0:
+            return True  # No alphabetic characters, assume English
+        
+        hindi_ratio = devanagari_count / total_alpha
+        return hindi_ratio < 0.3  # Less than 30% Hindi characters = English
+    
     def parse_quiz(self, html: str, url: str) -> QuizData:
         """
         Extract all questions, options, answers, and explanations from quiz HTML.
@@ -67,17 +94,33 @@ class QuizParser:
         
         logger.info(f"Found {len(question_sections)} question sections")
         
+        hindi_questions_skipped = 0
+        english_questions_found = 0
+        
         for idx, section in enumerate(question_sections, start=1):
             try:
                 question = self._parse_question_section(section, idx)
-                questions.append(question)
+                
+                # Filter out Hindi questions - only keep English questions
+                if self._is_english_text(question.question_text):
+                    # Renumber questions sequentially for English-only questions
+                    question.question_number = english_questions_found + 1
+                    questions.append(question)
+                    english_questions_found += 1
+                    logger.debug(f"✓ Question {idx} is English - keeping")
+                else:
+                    hindi_questions_skipped += 1
+                    logger.debug(f"✗ Question {idx} is Hindi - skipping")
+                    
             except Exception as e:
                 logger.error(f"Error parsing question {idx}: {str(e)}")
                 # Continue with other questions even if one fails
                 continue
         
+        logger.info(f"Language filtering: {english_questions_found} English questions kept, {hindi_questions_skipped} Hindi questions skipped")
+        
         if not questions:
-            raise ValueError("No questions could be parsed from HTML")
+            raise ValueError("No English questions could be parsed from HTML")
         
         return QuizData(
             source_url=url,
