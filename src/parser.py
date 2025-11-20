@@ -285,14 +285,17 @@ class QuizParser:
         solution_div = section.find('div', class_='solution-sec')
         
         if not solution_div:
-            logger.debug("No solution-sec div found")
+            logger.warning("No solution-sec div found in section")
             return ""
         
         # Then find ans-text div inside solution-sec
         explanation_div = solution_div.find('div', class_='ans-text')
         
         if not explanation_div:
-            logger.debug("No ans-text div found inside solution-sec")
+            logger.warning("No ans-text div found inside solution-sec")
+            # Debug: print what divs ARE in solution-sec
+            divs_in_solution = solution_div.find_all('div')
+            logger.warning(f"Divs found in solution-sec: {[div.get('class') for div in divs_in_solution]}")
             return ""
         
         # Extract text from list items and paragraphs
