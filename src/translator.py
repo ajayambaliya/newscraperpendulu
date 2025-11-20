@@ -107,6 +107,10 @@ class Translator:
             translated_options[label] = translated_text
         
         # Translate explanation
+        if question.explanation:
+            logger.debug(f"Q{question.question_number}: Translating explanation ({len(question.explanation)} chars)")
+        else:
+            logger.warning(f"Q{question.question_number}: No explanation to translate (empty)")
         translated_explanation = self._translate_text(question.explanation)
         
         # Note: correct_answer is just a label (A, B, C, D), so no translation needed
