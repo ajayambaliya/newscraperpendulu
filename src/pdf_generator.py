@@ -49,8 +49,7 @@ class PDFGenerator:
                     ["npm", "install"],
                     check=True,
                     capture_output=True,
-                    text=True,
-                    shell=True
+                    text=True
                 )
                 logger.info("✓ Node.js dependencies installed")
             except subprocess.CalledProcessError as e:
@@ -75,8 +74,7 @@ class PDFGenerator:
                 ["npm", "run", "build:css:prod"],
                 check=True,
                 capture_output=True,
-                text=True,
-                shell=True
+                text=True
             )
             logger.info("✓ Tailwind CSS built and optimized")
         except subprocess.CalledProcessError as e:
@@ -87,8 +85,7 @@ class PDFGenerator:
                     ["npm", "run", "build:css"],
                     check=True,
                     capture_output=True,
-                    text=True,
-                    shell=True
+                    text=True
                 )
                 logger.info("✓ Tailwind CSS built")
             except subprocess.CalledProcessError as e2:
@@ -200,8 +197,7 @@ class PDFGenerator:
                 ["node", "generate_pdf.js", html_path, pdf_path],
                 check=True,
                 capture_output=True,
-                text=True,
-                shell=True
+                text=True
             )
             
             logger.info(result.stdout)
