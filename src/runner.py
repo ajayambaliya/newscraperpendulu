@@ -61,30 +61,6 @@ def load_environment_variables() -> dict:
     telegram_bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
     telegram_channel = os.getenv('TELEGRAM_CHANNEL', 'currentadda')
     
-    # Load PDF generation configuration (with defaults for backward compatibility)
-    pdf_theme = os.getenv('PDF_THEME', 'light')
-    enable_svg_backgrounds_str = os.getenv('ENABLE_SVG_BACKGROUNDS', 'true').lower()
-    enable_svg_backgrounds = enable_svg_backgrounds_str in ('true', '1', 'yes')
-    svg_background_type = os.getenv('SVG_BACKGROUND_TYPE', 'wave')
-    
-    # Validate theme value
-    valid_themes = ['light', 'classic', 'vibrant']
-    if pdf_theme not in valid_themes:
-        logger.warning(
-            f"Invalid PDF_THEME '{pdf_theme}'. Using default 'light'. "
-            f"Valid options: {', '.join(valid_themes)}"
-        )
-        pdf_theme = 'light'
-    
-    # Validate SVG background type
-    valid_svg_types = ['wave', 'blob', 'none']
-    if svg_background_type not in valid_svg_types:
-        logger.warning(
-            f"Invalid SVG_BACKGROUND_TYPE '{svg_background_type}'. Using default 'wave'. "
-            f"Valid options: {', '.join(valid_svg_types)}"
-        )
-        svg_background_type = 'wave'
-    
     # Validate required variables
     missing_vars = []
     if not login_email:
@@ -101,18 +77,12 @@ def load_environment_variables() -> dict:
     
     logger.info("Environment variables loaded successfully")
     logger.info(f"Target Telegram channel: @{telegram_channel}")
-    logger.info(f"PDF Theme: {pdf_theme}")
-    logger.info(f"SVG Backgrounds: {'enabled' if enable_svg_backgrounds else 'disabled'} "
-               f"(type: {svg_background_type})")
     
     return {
         'login_email': login_email,
         'login_password': login_password,
         'telegram_bot_token': telegram_bot_token,
-        'telegram_channel': telegram_channel,
-        'pdf_theme': pdf_theme,
-        'enable_svg_backgrounds': enable_svg_backgrounds,
-        'svg_background_type': svg_background_type
+        'telegram_channel': telegram_channel
     }
 
 
@@ -123,9 +93,7 @@ def process_quiz(
     translator: Translator,
     pdf_generator: PDFGenerator,
     telegram_sender: TelegramSender,
-    state_manager: StateManager,
-    enable_svg_backgrounds: bool = True,
-    svg_background_type: str = "wave"
+    state_manager: StateManager
 ) -> bool:
     """
     Process a single quiz through the complete pipeline.
@@ -138,8 +106,6 @@ def process_quiz(
         pdf_generator: PDFGenerator instance
         telegram_sender: TelegramSender instance
         state_manager: StateManager instance
-        enable_svg_backgrounds: Whether to include SVG backgrounds in the PDF
-        svg_background_type: Type of SVG background ('wave', 'blob', 'none')
         
     Returns:
         True if successful, False otherwise
@@ -163,11 +129,7 @@ def process_quiz(
         
         # Step 4: Generate PDF
         logger.info("Step 4: Generating PDF...")
-        pdf_path = pdf_generator.generate_pdf(
-            translated_data,
-            enable_svg_backgrounds=enable_svg_backgrounds,
-            svg_background_type=svg_background_type
-        )
+        pdf_path = pdf_generator.generate_pdf(translated_data)
         logger.info(f"PDF generated: {pdf_path}")
         
         # Step 5: Send to Telegram
@@ -246,7 +208,7 @@ def main():
         scraper = QuizScraper(session)
         parser = QuizParser()
         translator = Translator()
-        pdf_generator = PDFGenerator(theme=env_vars['pdf_theme'])
+        pdf_generator = PDFGenerator()
         # Prepare channel username (add @ if not present)
         channel = env_vars['telegram_channel']
         if not channel.startswith('@'):
@@ -307,9 +269,7 @@ def main():
                 translator=translator,
                 pdf_generator=pdf_generator,
                 telegram_sender=telegram_sender,
-                state_manager=state_manager,
-                enable_svg_backgrounds=env_vars['enable_svg_backgrounds'],
-                svg_background_type=env_vars['svg_background_type']
+                state_manager=state_manager
             )
             
             if success:
