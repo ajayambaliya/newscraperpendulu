@@ -70,8 +70,17 @@ class PDFGenerator:
         
         html += self._generate_cover_page(date_gujarati, total_questions, estimated_time)
         
-        for question in quiz_data.questions:
+        # Generate questions in pages (2 per page)
+        html += '<div class="page-break p-12">'
+        for idx, question in enumerate(quiz_data.questions):
             html += self._generate_question_page(question)
+            # Add page break after every 2 questions
+            if (idx + 1) % 2 == 0 and (idx + 1) < len(quiz_data.questions):
+                html += '</div><div class="page-break p-12">'
+        html += '</div>'
+        
+        # Add promotional page
+        html += self._generate_promotional_page()
         
         html += "</body></html>"
         
@@ -154,7 +163,7 @@ class PDFGenerator:
 """
 
     def _generate_question_page(self, question: QuizQuestion) -> str:
-        """Generate beautiful question page"""
+        """Generate compact question card (2 per page)"""
         
         options_html = ""
         for label in ['A', 'B', 'C', 'D']:
@@ -162,20 +171,20 @@ class PDFGenerator:
                 is_correct = label == question.correct_answer
                 
                 if is_correct:
-                    option_class = "bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-400 shadow-lg shadow-green-100"
+                    option_class = "bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-400 shadow-md"
                     label_class = "bg-gradient-to-br from-green-500 to-emerald-600 text-white"
-                    check_mark = '<span class="text-2xl">✓</span>'
+                    check_mark = '<span class="text-lg">✓</span>'
                 else:
-                    option_class = "bg-white border-2 border-gray-200"
+                    option_class = "bg-white border border-gray-200"
                     label_class = "bg-gradient-to-br from-gray-400 to-gray-500 text-white"
                     check_mark = ""
                 
                 options_html += f"""
-                <div class="no-break {option_class} rounded-2xl p-5">
-                    <div class="flex items-center gap-4">
-                        <div class="{label_class} w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl shadow-md">{label}</div>
-                        <div class="flex-1 text-lg font-semibold text-gray-800 leading-relaxed">{question.options[label]}</div>
-                        {f'<div class="flex items-center gap-2"><span class="text-green-600 font-bold text-sm">સાચો જવાબ</span>{check_mark}</div>' if is_correct else ''}
+                <div class="{option_class} rounded-xl p-3">
+                    <div class="flex items-center gap-3">
+                        <div class="{label_class} w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shadow-sm">{label}</div>
+                        <div class="flex-1 text-sm font-semibold text-gray-800 leading-snug">{question.options[label]}</div>
+                        {f'<div class="flex items-center gap-1"><span class="text-green-600 font-bold text-xs">સાચો જવાબ</span>{check_mark}</div>' if is_correct else ''}
                     </div>
                 </div>
 """
@@ -183,33 +192,25 @@ class PDFGenerator:
         explanation_html = ""
         if question.explanation:
             explanation_html = f"""
-            <div class="no-break glass rounded-2xl p-6 border-l-4 border-indigo-500 shadow-xl mt-6">
-                <div class="flex items-center gap-3 mb-4">
-                    <span class="text-3xl">💡</span>
-                    <h4 class="text-xl font-bold text-indigo-700">સમજૂતી</h4>
+            <div class="glass rounded-xl p-4 border-l-4 border-indigo-500 shadow-md mt-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xl">💡</span>
+                    <h4 class="text-sm font-bold text-indigo-700">સમજૂતી</h4>
                 </div>
-                <p class="text-gray-700 leading-relaxed text-lg">{question.explanation}</p>
+                <p class="text-gray-700 leading-snug text-xs">{question.explanation}</p>
             </div>
 """
         
         return f"""
-    <div class="page-break min-h-screen p-12 flex items-center">
-        <div class="w-full max-w-4xl mx-auto">
-            <div class="no-break bg-white rounded-3xl shadow-2xl p-10 border border-gray-100">
-                <div class="flex items-start gap-5 mb-8">
-                    <div class="flex-shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-2xl shadow-lg">{question.question_number}</div>
-                    <h2 class="flex-1 text-2xl font-bold text-gray-900 leading-relaxed pt-3">{question.question_text}</h2>
-                </div>
-                
-                <div class="space-y-4 mb-6">{options_html}</div>
-                
-                {explanation_html}
-            </div>
-            
-            <div class="mt-6 text-center text-gray-500 text-sm">
-                <span class="font-semibold">{self.channel_name}</span> • {self.channel_link}
-            </div>
+    <div class="no-break bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+        <div class="flex items-start gap-3 mb-4">
+            <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-lg shadow-md">{question.question_number}</div>
+            <h2 class="flex-1 text-base font-bold text-gray-900 leading-snug pt-1">{question.question_text}</h2>
         </div>
+        
+        <div class="space-y-2">{options_html}</div>
+        
+        {explanation_html}
     </div>
 """
 
@@ -249,3 +250,154 @@ class PDFGenerator:
         except Exception as e:
             logger.error(f"Error generating PDF: {e}")
             raise
+
+    def _generate_promotional_page(self) -> str:
+        """Generate promotional page for the channel"""
+        return """
+    <div class="page-break relative min-h-screen flex items-center justify-center p-12 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+        <div class="w-full max-w-4xl">
+            <!-- Header -->
+            <div class="text-center mb-12">
+                <div class="inline-block p-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl shadow-2xl mb-6">
+                    <span class="text-6xl">📢</span>
+                </div>
+                <h1 class="text-5xl font-black text-gray-800 mb-4">Current Adda</h1>
+                <p class="text-2xl font-bold text-indigo-600">GPSC/GSSSB Junction</p>
+            </div>
+            
+            <!-- Channel Info Card -->
+            <div class="glass rounded-3xl p-8 mb-8 shadow-2xl">
+                <div class="grid grid-cols-2 gap-6 mb-6">
+                    <div class="text-center p-4 bg-white rounded-2xl shadow-md">
+                        <div class="text-3xl mb-2">👥</div>
+                        <div class="text-3xl font-bold text-indigo-600">8,929+</div>
+                        <div class="text-sm text-gray-600 font-semibold">સભ્યો</div>
+                    </div>
+                    <div class="text-center p-4 bg-white rounded-2xl shadow-md">
+                        <div class="text-3xl mb-2">📚</div>
+                        <div class="text-3xl font-bold text-purple-600">દૈનિક</div>
+                        <div class="text-sm text-gray-600 font-semibold">અપડેટ્સ</div>
+                    </div>
+                </div>
+                
+                <div class="bg-gradient-to-r from-indigo-100 to-purple-100 rounded-2xl p-6 mb-6">
+                    <p class="text-center text-lg font-bold text-gray-800 leading-relaxed">
+                        ગુજરાત સરકારની તમામ ભરતી પરીક્ષામાં ઉપયોગી થાય એવી માહિતી
+                    </p>
+                </div>
+                
+                <!-- Topics Covered -->
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 text-center">📋 આપણે શું આવરી લઈએ છીએ</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="flex items-center gap-2 bg-white p-3 rounded-xl shadow-sm">
+                            <span class="text-2xl">✅</span>
+                            <span class="font-semibold text-gray-700">GPSC પરીક્ષાઓ</span>
+                        </div>
+                        <div class="flex items-center gap-2 bg-white p-3 rounded-xl shadow-sm">
+                            <span class="text-2xl">✅</span>
+                            <span class="font-semibold text-gray-700">GSSSB ભરતી</span>
+                        </div>
+                        <div class="flex items-center gap-2 bg-white p-3 rounded-xl shadow-sm">
+                            <span class="text-2xl">✅</span>
+                            <span class="font-semibold text-gray-700">તલાટી પરીક્ષા</span>
+                        </div>
+                        <div class="flex items-center gap-2 bg-white p-3 rounded-xl shadow-sm">
+                            <span class="text-2xl">✅</span>
+                            <span class="font-semibold text-gray-700">કોન્સ્ટેબલ/PSI/ASI</span>
+                        </div>
+                        <div class="flex items-center gap-2 bg-white p-3 rounded-xl shadow-sm">
+                            <span class="text-2xl">✅</span>
+                            <span class="font-semibold text-gray-700">બિન સચિવાલય</span>
+                        </div>
+                        <div class="flex items-center gap-2 bg-white p-3 rounded-xl shadow-sm">
+                            <span class="text-2xl">✅</span>
+                            <span class="font-semibold text-gray-700">કરંટ અફેર્સ</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Special Note -->
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-xl mb-6">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl">⚠️</span>
+                        <div>
+                            <h4 class="font-bold text-gray-800 mb-1">ખાસ નોંધ</h4>
+                            <p class="text-sm text-gray-700">ગંભીરતાપૂર્વક તૈયારી કરતા ઉમેદવારોએ જ જોડાવું</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- What You Get -->
+            <div class="glass rounded-3xl p-8 mb-8 shadow-2xl">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6 text-center">🎯 તમને શું મળશે</h3>
+                <div class="space-y-3">
+                    <div class="flex items-start gap-3 bg-white p-4 rounded-xl shadow-sm">
+                        <span class="text-2xl flex-shrink-0">📅</span>
+                        <div>
+                            <h4 class="font-bold text-gray-800">દૈનિક કરંટ અફેર્સ</h4>
+                            <p class="text-sm text-gray-600">ગુજરાતીમાં સંપૂર્ણ સમજૂતી સાથે</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 bg-white p-4 rounded-xl shadow-sm">
+                        <span class="text-2xl flex-shrink-0">📝</span>
+                        <div>
+                            <h4 class="font-bold text-gray-800">પ્રેક્ટિસ ક્વિઝ</h4>
+                            <p class="text-sm text-gray-600">દરરોજ નવા પ્રશ્નો અને જવાબો</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 bg-white p-4 rounded-xl shadow-sm">
+                        <span class="text-2xl flex-shrink-0">📊</span>
+                        <div>
+                            <h4 class="font-bold text-gray-800">પરીક્ષા વ્યૂહરચના</h4>
+                            <p class="text-sm text-gray-600">નિષ્ણાતો દ્વારા માર્ગદર્શન</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 bg-white p-4 rounded-xl shadow-sm">
+                        <span class="text-2xl flex-shrink-0">📄</span>
+                        <div>
+                            <h4 class="font-bold text-gray-800">અગાઉના પેપર્સ</h4>
+                            <p class="text-sm text-gray-600">વિશ્લેષણ અને ઉકેલ સાથે</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 bg-white p-4 rounded-xl shadow-sm">
+                        <span class="text-2xl flex-shrink-0">🎓</span>
+                        <div>
+                            <h4 class="font-bold text-gray-800">અભ્યાસ સામગ્રી</h4>
+                            <p class="text-sm text-gray-600">PDF અને ઇન્ફોગ્રાફિક્સ</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Join CTA -->
+            <div class="glass rounded-3xl p-10 shadow-2xl text-center">
+                <h3 class="text-3xl font-black text-gray-800 mb-4">આજે જ જોડાઓ! 🚀</h3>
+                <p class="text-lg text-gray-700 mb-6">તમારી સફળતાની યાત્રા અહીંથી શરૂ થાય છે</p>
+                
+                <div class="inline-block bg-white p-6 rounded-2xl shadow-lg mb-6">
+                    <div class="text-6xl mb-3">📱</div>
+                    <div class="text-2xl font-bold text-indigo-600 mb-2">@currentadda</div>
+                    <div class="text-gray-600">t.me/currentadda</div>
+                </div>
+                
+                <div class="flex items-center justify-center gap-4 flex-wrap">
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-full font-bold shadow-lg">
+                        📢 Telegram
+                    </div>
+                    <div class="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-full font-bold shadow-lg">
+                        💬 WhatsApp
+                    </div>
+                    <div class="bg-gradient-to-r from-pink-500 to-pink-600 text-white px-6 py-3 rounded-full font-bold shadow-lg">
+                        📸 Instagram
+                    </div>
+                </div>
+                
+                <p class="text-sm text-gray-600 mt-6">
+                    #GPSC #GSSSB #GujaratJobs #CurrentAffairs #Talati #PSI
+                </p>
+            </div>
+        </div>
+    </div>
+"""

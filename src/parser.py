@@ -185,25 +185,31 @@ class QuizParser:
         options = {}
         option_labels = ['A', 'B', 'C', 'D']
         
-        # Find all li elements that contain options
-        # The structure is: <li><label class="containerr"><div class="containerr-text-opt">text</div></label></li>
-        option_list_items = section.find_all('li')
+        # Find the q-option div first to avoid getting explanation list items
+        q_option_div = section.find('div', class_='q-option')
+        if not q_option_div:
+            return options
         
-        for idx, li in enumerate(option_list_items):
-            if idx >= len(option_labels):
+        # Find all li elements that contain options within q-option div only
+        option_list_items = q_option_div.find_all('li', recursive=False)
+        
+        option_count = 0
+        for li in option_list_items:
+            if option_count >= len(option_labels):
                 logger.warning(f"More than {len(option_labels)} options found, ignoring extras")
                 break
             
             # Find the div with class containerr-text-opt inside the li
             option_div = li.find('div', class_='containerr-text-opt')
             if not option_div:
-                # Skip if this li doesn't contain an option
                 continue
             
             option_text = option_div.get_text(strip=True)
-            # Remove any leading label if present (e.g., "A. " or "A) ")
             option_text = self._clean_option_text(option_text)
-            options[option_labels[idx]] = option_text
+            
+            if option_text:  # Only add if text is not empty
+                options[option_labels[option_count]] = option_text
+                option_count += 1
         
         return options
     
