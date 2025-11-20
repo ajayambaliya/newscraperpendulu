@@ -514,10 +514,14 @@ class HTMLGenerator:
         # Step 7: Compose final HTML from components
         content_html = cover_html + "\n" + "\n".join(questions_html)
         
+        # Get absolute path to CSS file
+        css_path = os.path.abspath(os.path.join(self.templates_dir, "output.css"))
+        
         final_html = base_template.render(
             theme=self.theme,
             title="કરંટ અફેર્સ ક્વિઝ",
-            content=content_html
+            content=content_html,
+            css_path=css_path
         )
         
         logging.debug("Final HTML composed from base template")
