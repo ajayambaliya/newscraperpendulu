@@ -500,7 +500,10 @@ class HTMLGenerator:
                     explanation=question.explanation  # Pass explanation text
                 )
                 questions_html.append(question_html)
-                logging.debug(f"Question {idx}: Question card rendered successfully")
+                if question.explanation:
+                    logging.debug(f"Question {idx}: Question card rendered with explanation ({len(question.explanation)} chars)")
+                else:
+                    logging.warning(f"Question {idx}: No explanation found for this question")
             else:
                 # Fallback to simple HTML if component not found
                 logging.warning(f"Question {idx}: Question card component not found, using fallback")

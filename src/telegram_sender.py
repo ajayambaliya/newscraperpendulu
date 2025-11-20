@@ -70,8 +70,18 @@ class TelegramSender:
             caption = self._create_default_caption()
         
         try:
+            # Get or create event loop
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_closed():
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
             # Run async send operation
-            result = asyncio.run(self._send_pdf_async(pdf_path, caption))
+            result = loop.run_until_complete(self._send_pdf_async(pdf_path, caption))
             return result
             
         except Exception as e:

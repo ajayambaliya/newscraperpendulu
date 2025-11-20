@@ -1,36 +1,41 @@
-<div class="question-card-modern no-break">
+<div class="question-card-modern no-break bg-white rounded-3xl shadow-2xl p-10 mb-10 border-l-8 border-blue-500">
     <!-- Question Header -->
-    <div class="question-header flex items-start gap-4 mb-6">
+    <div class="question-header flex items-start gap-5 mb-8">
         <!-- Question Number Badge -->
-        <span class="question-number-badge flex-shrink-0">
+        <span class="question-number-badge flex-shrink-0 inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black text-2xl shadow-lg">
             {{ number }}
         </span>
         
         <!-- Question Text -->
-        <h3 class="question-text text-xl font-semibold text-gray-800 leading-relaxed flex-1">
+        <h3 class="question-text text-2xl font-bold text-gray-900 leading-relaxed flex-1 pt-2">
             {{ question }}
         </h3>
     </div>
     
     <!-- Options Container -->
-    <div class="options-container space-y-3 mb-6">
+    <div class="options-container space-y-4 mb-8 ml-2">
         {% for option in options %}
-            <div class="option-bubble {% if option.is_correct %}option-correct-gradient{% endif %}">
+            <div class="option-bubble flex items-center gap-5 p-5 rounded-2xl border-3 transition-all
+                        {% if option.is_correct %}
+                        bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 border-green-500 shadow-lg ring-4 ring-green-200/50
+                        {% else %}
+                        bg-gray-50 border-gray-300 hover:border-gray-400 hover:shadow-md
+                        {% endif %}">
                 <!-- Option Label (A, B, C, D) -->
-                <span class="option-label flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full 
-                             {% if option.is_correct %}bg-green-600 text-white{% else %}bg-gray-200 text-gray-700{% endif %} 
-                             font-bold text-sm">
+                <span class="option-label flex-shrink-0 inline-flex items-center justify-center w-12 h-12 rounded-xl
+                             {% if option.is_correct %}bg-green-600 text-white shadow-lg{% else %}bg-gray-300 text-gray-800{% endif %} 
+                             font-black text-lg">
                     {{ option.label }}
                 </span>
                 
                 <!-- Option Text -->
-                <span class="option-text flex-1 text-gray-800 font-medium leading-relaxed">
+                <span class="option-text flex-1 text-gray-900 font-semibold text-lg leading-relaxed">
                     {{ option.text }}
                 </span>
                 
                 <!-- Checkmark Icon for Correct Answer -->
                 {% if option.is_correct %}
-                <span class="check-icon flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-600 text-white text-sm font-bold">
+                <span class="check-icon flex-shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-600 text-white text-xl font-black shadow-lg">
                     ✓
                 </span>
                 {% endif %}
@@ -39,21 +44,21 @@
     </div>
     
     <!-- Explanation (if present) -->
-    {% if explanation %}
-        <div class="explanation-box-modern">
+    {% if explanation and explanation|length > 0 %}
+        <div class="explanation-box-modern mt-8 p-8 rounded-2xl bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-l-6 border-blue-600 shadow-xl">
             <!-- Explanation Header -->
-            <div class="explanation-header flex items-center gap-3 mb-3">
+            <div class="explanation-header flex items-center gap-4 mb-5">
                 <!-- Info Icon -->
-                <span class="info-icon text-2xl flex-shrink-0">💡</span>
+                <span class="info-icon text-4xl flex-shrink-0">💡</span>
                 
                 <!-- Label -->
-                <span class="explanation-label text-lg font-bold text-blue-700">
+                <span class="explanation-label text-2xl font-black text-blue-800">
                     સમજૂતી:
                 </span>
             </div>
             
             <!-- Explanation Text -->
-            <p class="explanation-text text-gray-700 leading-relaxed font-medium">
+            <p class="explanation-text text-gray-800 leading-relaxed font-semibold text-lg pl-14">
                 {{ explanation }}
             </p>
         </div>
