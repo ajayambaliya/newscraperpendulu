@@ -164,6 +164,12 @@ class QuizParser:
         # Extract explanation from ans-text div
         explanation = self._extract_explanation(section)
         
+        # Debug logging
+        if explanation:
+            logger.info(f"Question {question_number}: Explanation extracted ({len(explanation)} chars)")
+        else:
+            logger.warning(f"Question {question_number}: No explanation found")
+        
         return QuizQuestion(
             question_number=question_number,
             question_text=question_text,

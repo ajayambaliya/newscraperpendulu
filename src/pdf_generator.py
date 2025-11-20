@@ -165,6 +165,12 @@ class PDFGenerator:
     def _generate_question_page(self, question: QuizQuestion) -> str:
         """Generate compact question card (2 per page)"""
         
+        # Debug logging
+        if question.explanation:
+            logger.info(f"Q{question.question_number}: Has explanation ({len(question.explanation)} chars)")
+        else:
+            logger.warning(f"Q{question.question_number}: No explanation in question object")
+        
         options_html = ""
         for label in ['A', 'B', 'C', 'D']:
             if label in question.options:
