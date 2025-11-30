@@ -9,6 +9,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Dict
 import pytz
+import base64
 
 from .parser import QuizQuestion
 from .translator import TranslatedQuizData
@@ -36,7 +37,35 @@ class PDFGenerator:
         self.date_gujarati = None
         self.date_filename = None
         
+        # Load logo as base64
+        self.logo_base64 = self._load_logo_as_base64()
+        
         logger.info("PDF Generator initialized with Playwright")
+    
+    def _load_logo_as_base64(self) -> str:
+        """Load logo.png and convert to base64 data URI"""
+        logo_path = "logo.png"
+        
+        if not os.path.exists(logo_path):
+            logger.warning(f"Logo file not found at {logo_path}")
+            return ""
+        
+        try:
+            with open(logo_path, 'rb') as f:
+                logo_data = f.read()
+            
+            # Convert to base64
+            logo_base64 = base64.b64encode(logo_data).decode('utf-8')
+            
+            # Create data URI
+            data_uri = f"data:image/png;base64,{logo_base64}"
+            
+            logger.info(f"✓ Logo loaded successfully ({len(logo_data)} bytes)")
+            return data_uri
+            
+        except Exception as e:
+            logger.error(f"Error loading logo: {e}")
+            return ""
 
     def generate_html(self, quiz_data: TranslatedQuizData) -> str:
         """Generate beautiful HTML from quiz data"""
@@ -88,12 +117,10 @@ class PDFGenerator:
         
         html += self._generate_cover_page(date_gujarati, total_questions, estimated_time)
         
-        # Check if logo exists for watermark
-        logo_path = os.path.abspath("logo.png")
-        logo_exists = os.path.exists(logo_path)
+        # Use base64 logo for watermark
         watermark_html = ""
-        if logo_exists:
-            watermark_html = f'<img src="file:///{logo_path}" alt="Watermark" class="watermark w-32 h-32 object-contain" />'
+        if self.logo_base64:
+            watermark_html = f'<img src="{self.logo_base64}" alt="Watermark" class="watermark w-32 h-32 object-contain" />'
         
         # Generate questions in pages (2 per page)
         html += f'<div class="page-break p-12">{watermark_html}<div class="content">'
@@ -113,13 +140,10 @@ class PDFGenerator:
 
     def _generate_cover_page(self, date: str, total_questions: int, estimated_time: int) -> str:
         """Generate premium cover page"""
-        # Check if logo exists
-        logo_path = os.path.abspath("logo.png")
-        logo_exists = os.path.exists(logo_path)
-        
+        # Use base64 logo if available
         logo_html = ""
-        if logo_exists:
-            logo_html = f'<img src="file:///{logo_path}" alt="Logo" class="w-32 h-32 object-contain rounded-2xl shadow-2xl" />'
+        if self.logo_base64:
+            logo_html = f'<img src="{self.logo_base64}" alt="Logo" class="w-32 h-32 object-contain rounded-2xl shadow-2xl" />'
         else:
             logo_html = '<div class="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl"><span class="text-4xl">📚</span></div>'
         
@@ -297,12 +321,10 @@ class PDFGenerator:
 
     def _generate_promotional_page(self) -> str:
         """Generate promotional page for the channel"""
-        # Check if logo exists for watermark
-        logo_path = os.path.abspath("logo.png")
-        logo_exists = os.path.exists(logo_path)
+        # Use base64 logo for watermark
         watermark_html = ""
-        if logo_exists:
-            watermark_html = f'<img src="file:///{logo_path}" alt="Watermark" class="watermark w-32 h-32 object-contain" />'
+        if self.logo_base64:
+            watermark_html = f'<img src="{self.logo_base64}" alt="Watermark" class="watermark w-32 h-32 object-contain" />'
         
         return f"""
     <div class="page-break relative min-h-screen flex items-center justify-center p-12 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
