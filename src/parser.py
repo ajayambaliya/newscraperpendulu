@@ -149,6 +149,10 @@ class QuizParser:
         
         question_text = question_div.get_text(strip=True)
         
+        # Check if question is in Hindi - skip early to avoid parsing errors
+        if not self._is_english_text(question_text):
+            raise ValueError(f"Question {question_number} is in Hindi - skipping")
+        
         # Extract options from containerr-text-opt elements
         options = self._extract_options(section)
         

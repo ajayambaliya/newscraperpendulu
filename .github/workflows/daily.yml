@@ -66,6 +66,10 @@ jobs:
         run: |
           npm install
       
+      - name: Install Playwright browsers for Node.js
+        run: |
+          npx playwright install chromium
+      
       - name: Verify Playwright installation
         run: |
           python -c "from playwright.sync_api import sync_playwright; print('Playwright Python package OK')"
