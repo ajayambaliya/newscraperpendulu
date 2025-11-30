@@ -11,6 +11,14 @@ from typing import List, Optional
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+# Try to import Playwright at module level
+try:
+    from playwright.sync_api import sync_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
+    sync_playwright = None
+
 
 class ScraperError(Exception):
     """Raised when scraping operations fail"""
@@ -204,9 +212,7 @@ class QuizScraper:
         import logging
         logger = logging.getLogger(__name__)
         
-        try:
-            from playwright.sync_api import sync_playwright
-        except ImportError:
+        if not PLAYWRIGHT_AVAILABLE:
             raise ScraperError("Playwright not installed. Run: pip install playwright && playwright install chromium")
         
         logger.info("PLAYWRIGHT: Starting browser...")
