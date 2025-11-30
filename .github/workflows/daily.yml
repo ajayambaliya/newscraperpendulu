@@ -28,17 +28,18 @@ jobs:
         run: |
           pip install -r requirements.txt
       
+      - name: Install Playwright browsers
+        run: |
+          playwright install chromium
+          playwright install-deps chromium
+      
       - name: Install Node.js dependencies
         run: |
           npm install
       
-      - name: Install Playwright and dependencies
-        run: |
-          npx playwright install --with-deps chromium
-      
       - name: Verify Playwright installation
         run: |
-          npx playwright --version
+          python -c "from playwright.sync_api import sync_playwright; print('Playwright Python package OK')"
           echo "Playwright installed successfully"
           
       - name: Run scraper
