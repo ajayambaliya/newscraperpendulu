@@ -68,10 +68,19 @@ class PDFGenerator:
         * {{ font-family: 'Noto Serif Gujarati', serif; }}
         body {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }}
         @page {{ size: A4; margin: 0; }}
-        .page-break {{ page-break-after: always; }}
+        .page-break {{ page-break-after: always; position: relative; }}
         .no-break {{ page-break-inside: avoid; }}
         .glass {{ background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.18); }}
         .blob {{ border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; background: linear-gradient(45deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1)); }}
+        .watermark {{
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            opacity: 0.15;
+            z-index: 0;
+            pointer-events: none;
+        }}
+        .content {{ position: relative; z-index: 1; }}
     </style>
 </head>
 <body class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
@@ -79,14 +88,21 @@ class PDFGenerator:
         
         html += self._generate_cover_page(date_gujarati, total_questions, estimated_time)
         
+        # Check if logo exists for watermark
+        logo_path = os.path.abspath("logo.png")
+        logo_exists = os.path.exists(logo_path)
+        watermark_html = ""
+        if logo_exists:
+            watermark_html = f'<img src="file:///{logo_path}" alt="Watermark" class="watermark w-32 h-32 object-contain" />'
+        
         # Generate questions in pages (2 per page)
-        html += '<div class="page-break p-12">'
+        html += f'<div class="page-break p-12">{watermark_html}<div class="content">'
         for idx, question in enumerate(quiz_data.questions):
             html += self._generate_question_page(question)
             # Add page break after every 2 questions
             if (idx + 1) % 2 == 0 and (idx + 1) < len(quiz_data.questions):
-                html += '</div><div class="page-break p-12">'
-        html += '</div>'
+                html += f'</div></div><div class="page-break p-12">{watermark_html}<div class="content">'
+        html += '</div></div>'
         
         # Add promotional page
         html += self._generate_promotional_page()
@@ -97,16 +113,24 @@ class PDFGenerator:
 
     def _generate_cover_page(self, date: str, total_questions: int, estimated_time: int) -> str:
         """Generate premium cover page"""
+        # Check if logo exists
+        logo_path = os.path.abspath("logo.png")
+        logo_exists = os.path.exists(logo_path)
+        
+        logo_html = ""
+        if logo_exists:
+            logo_html = f'<img src="file:///{logo_path}" alt="Logo" class="w-32 h-32 object-contain rounded-2xl shadow-2xl" />'
+        else:
+            logo_html = '<div class="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl"><span class="text-4xl">📚</span></div>'
+        
         return f"""
     <div class="page-break relative min-h-screen flex items-center justify-center p-12 overflow-hidden">
         <div class="blob absolute top-0 right-0 w-96 h-96 opacity-30 -translate-y-1/2 translate-x-1/2"></div>
         <div class="blob absolute bottom-0 left-0 w-80 h-80 opacity-20 translate-y-1/2 -translate-x-1/2"></div>
         
-        <div class="relative z-10 w-full max-w-3xl">
+        <div class="content relative z-10 w-full max-w-3xl">
             <div class="flex justify-center mb-8">
-                <div class="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl">
-                    <span class="text-4xl">📚</span>
-                </div>
+                {logo_html}
             </div>
             
             <h1 class="text-6xl font-black text-center mb-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
@@ -273,9 +297,17 @@ class PDFGenerator:
 
     def _generate_promotional_page(self) -> str:
         """Generate promotional page for the channel"""
-        return """
+        # Check if logo exists for watermark
+        logo_path = os.path.abspath("logo.png")
+        logo_exists = os.path.exists(logo_path)
+        watermark_html = ""
+        if logo_exists:
+            watermark_html = f'<img src="file:///{logo_path}" alt="Watermark" class="watermark w-32 h-32 object-contain" />'
+        
+        return f"""
     <div class="page-break relative min-h-screen flex items-center justify-center p-12 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-        <div class="w-full max-w-4xl">
+        {watermark_html}
+        <div class="content w-full max-w-4xl">
             <!-- Header -->
             <div class="text-center mb-12">
                 <div class="inline-block p-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl shadow-2xl mb-6">
