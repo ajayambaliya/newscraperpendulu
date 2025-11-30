@@ -22,6 +22,7 @@ from src.parser import QuizParser, QuizData
 from src.translator import Translator, TranslatedQuizData
 from src.pdf_generator import PDFGenerator
 from src.telegram_sender import TelegramSender
+from src.telegram_text_sender import TelegramTextSender
 from src.date_extractor import DateExtractor
 
 # Load environment variables
@@ -61,6 +62,7 @@ def load_environment_variables() -> dict:
     login_password = os.getenv('LOGIN_PASSWORD')
     telegram_bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
     telegram_channel = os.getenv('TELEGRAM_CHANNEL', 'currentadda')
+    telegram_text_channel = os.getenv('TELEGRAM_TEXT_CHANNEL', '')  # Optional text channel
     
     # Validate required variables
     missing_vars = []
@@ -77,13 +79,16 @@ def load_environment_variables() -> dict:
         )
     
     logger.info("Environment variables loaded successfully")
-    logger.info(f"Target Telegram channel: @{telegram_channel}")
+    logger.info(f"Target Telegram PDF channel: @{telegram_channel}")
+    if telegram_text_channel:
+        logger.info(f"Target Telegram TEXT channel: @{telegram_text_channel}")
     
     return {
         'login_email': login_email,
         'login_password': login_password,
         'telegram_bot_token': telegram_bot_token,
-        'telegram_channel': telegram_channel
+        'telegram_channel': telegram_channel,
+        'telegram_text_channel': telegram_text_channel
     }
 
 
@@ -94,6 +99,7 @@ def process_quiz(
     translator: Translator,
     pdf_generator: PDFGenerator,
     telegram_sender: TelegramSender,
+    telegram_text_sender: TelegramTextSender,
     state_manager: StateManager,
     date_extractor: DateExtractor
 ) -> bool:
@@ -173,8 +179,20 @@ def process_quiz(
         
         logger.info("PDF sent to Telegram successfully")
         
-        # Step 6: Mark as processed
-        logger.info("Step 6: Marking quiz as processed...")
+        # Step 6: Send text messages (if text channel is configured)
+        if telegram_text_sender:
+            logger.info("Step 6: Sending formatted text messages to Telegram...")
+            text_success = telegram_text_sender.send_quiz_questions(
+                translated_data,
+                date_english
+            )
+            if text_success:
+                logger.info("Text messages sent successfully")
+            else:
+                logger.warning("Failed to send some text messages")
+        
+        # Step 7: Mark as processed
+        logger.info(f"Step {'7' if telegram_text_sender else '6'}: Marking quiz as processed...")
         state_manager.mark_processed(url)
         logger.info(f"Quiz processed successfully: {url}")
         
@@ -227,6 +245,7 @@ def main():
         translator = Translator()
         pdf_generator = PDFGenerator()
         date_extractor = DateExtractor()
+        
         # Prepare channel username (add @ if not present)
         channel = env_vars['telegram_channel']
         if not channel.startswith('@'):
@@ -236,6 +255,20 @@ def main():
             bot_token=env_vars['telegram_bot_token'],
             channel_username=channel
         )
+        
+        # Initialize text sender if text channel is configured
+        telegram_text_sender = None
+        if env_vars.get('telegram_text_channel'):
+            text_channel = env_vars['telegram_text_channel']
+            if not text_channel.startswith('@'):
+                text_channel = f"@{text_channel}"
+            
+            telegram_text_sender = TelegramTextSender(
+                bot_token=env_vars['telegram_bot_token'],
+                channel_username=text_channel
+            )
+            logger.info(f"Text sender initialized for: {text_channel}")
+        
         logger.info("All components initialized")
         
         # Step 5: Fetch quiz listing
@@ -287,6 +320,7 @@ def main():
                 translator=translator,
                 pdf_generator=pdf_generator,
                 telegram_sender=telegram_sender,
+                telegram_text_sender=telegram_text_sender,
                 state_manager=state_manager,
                 date_extractor=date_extractor
             )
