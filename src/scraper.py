@@ -187,99 +187,11 @@ class QuizScraper:
         Raises:
             ScraperError: If submission fails
         """
-        try:
-            print(f"Fetching quiz page to extract quiz ID...")
-            
-            # First, get the quiz page HTML
-            initial_html = self.get_quiz_page(url)
-            
-            # Extract quiz IDs from the hidden form fields
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(initial_html, 'html.parser')
-            
-            quiz_id_input = soup.find('input', {'id': 'intQuizId'})
-            english_quiz_id_input = soup.find('input', {'id': 'intEnglishQuizId'})
-            
-            if not quiz_id_input or not english_quiz_id_input:
-                print("⚠️ Warning: Could not find quiz ID inputs, falling back to Selenium...")
-                return self._submit_quiz_selenium(url)
-            
-            quiz_id = quiz_id_input.get('value')
-            english_quiz_id = english_quiz_id_input.get('value')
-            
-            print(f"✓ Found Quiz ID: {quiz_id}, English Quiz ID: {english_quiz_id}")
-            
-            # Make the POST request to submit the quiz
-            print("Submitting quiz via POST request...")
-            submit_url = "https://pendulumedu.com/quiz/quizanwers"
-            
-            form_data = {
-                'intQuizId': quiz_id,
-                'intEnglishQuizId': english_quiz_id,
-                'txtCurrentURL': url,
-                'txtCurrentTime': '0',
-                'txtLoginPopupStatus': 'no',
-                'pauseBtnhms': 'resume'
-            }
-            
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Origin': 'https://pendulumedu.com',
-                'Referer': url,
-            }
-            
-            response = self.session.post(
-                submit_url,
-                data=form_data,
-                headers=headers,
-                timeout=30,
-                allow_redirects=True
-            )
-            
-            print(f"✓ Submit response status: {response.status_code}")
-            
-            # The response might be a redirect or the updated page
-            # Let's fetch the page again to get the updated HTML
-            print("Fetching updated quiz page with solutions...")
-            time.sleep(2)  # Give server a moment to process
-            
-            updated_html = self.get_quiz_page(url)
-            
-            # Verify solutions are present
-            soup = BeautifulSoup(updated_html, 'html.parser')
-            solution_sections = soup.find_all('div', class_='solution-sec')
-            
-            if solution_sections:
-                # Check if solutions have actual content (not just "Solution:")
-                first_solution = solution_sections[0]
-                head_div = first_solution.find('div', class_='head')
-                
-                if head_div and 'Correct Answer:' in head_div.get_text():
-                    print(f"✓ Solutions loaded! Found {len(solution_sections)} solution sections with correct answers")
-                    
-                    # Save for debugging
-                    try:
-                        with open('debug_scraped_quiz.html', 'w', encoding='utf-8') as f:
-                            f.write(updated_html)
-                        print("  Debug: Saved scraped HTML to debug_scraped_quiz.html")
-                    except Exception as e:
-                        print(f"  Warning: Could not save debug HTML: {e}")
-                    
-                    return updated_html
-                else:
-                    print("⚠️ Warning: Solutions found but no 'Correct Answer:' text, falling back to Selenium...")
-                    return self._submit_quiz_selenium(url)
-            else:
-                print("⚠️ Warning: No solutions found after POST request, falling back to Selenium...")
-                return self._submit_quiz_selenium(url)
-                
-        except Exception as e:
-            print(f"⚠️ Error with POST request method: {e}")
-            print("Falling back to Selenium method...")
-            return self._submit_quiz_selenium(url)
+        # POST request doesn't work - the server stores submission in session
+        # but doesn't update the HTML. JavaScript is required to fetch and display answers.
+        # Use Selenium directly.
+        print("Using Selenium to submit quiz (POST method doesn't work)...")
+        return self._submit_quiz_selenium(url)
     
     def _submit_quiz_selenium(self, url: str) -> str:
         """
