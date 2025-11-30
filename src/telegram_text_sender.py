@@ -167,16 +167,14 @@ class TelegramTextSender:
         self,
         quiz_data: TranslatedQuizData,
         date: str,
-        batch_size: int = 5,
         show_answers: bool = True
     ) -> bool:
         """
-        Send all quiz questions to the channel
+        Send all quiz questions to the channel with smart message splitting
         
         Args:
             quiz_data: TranslatedQuizData object
             date: Quiz date string
-            batch_size: Number of questions to send in one message (to avoid hitting limits)
             show_answers: Whether to show answers and explanations
             
         Returns:
@@ -189,41 +187,55 @@ class TelegramTextSender:
             logger.error("Failed to send header")
             return False
         
-        # Send questions in batches
+        # Send questions with smart splitting
         success_count = 0
-        total_batches = (len(quiz_data.questions) + batch_size - 1) // batch_size
+        failed_count = 0
+        current_message = ""
+        message_count = 0
         
-        for batch_num in range(total_batches):
-            start_idx = batch_num * batch_size
-            end_idx = min(start_idx + batch_size, len(quiz_data.questions))
-            batch_questions = quiz_data.questions[start_idx:end_idx]
+        for idx, question in enumerate(quiz_data.questions, 1):
+            question_text = self.format_question(question, show_answers)
             
-            # Format batch
-            batch_text = ""
-            for question in batch_questions:
-                question_text = self.format_question(question, show_answers)
-                
-                # Check if adding this question would exceed Telegram's limit (4096 chars)
-                if len(batch_text) + len(question_text) > 4000:
-                    # Send current batch
-                    if self.send_message(batch_text):
+            # Check if adding this question would exceed Telegram's limit (4096 chars)
+            # We use 3800 as safe limit to account for formatting
+            if len(current_message) + len(question_text) + 10 > 3800:
+                # Send current message
+                if current_message:
+                    if self.send_message(current_message):
                         success_count += 1
-                    batch_text = question_text
+                        message_count += 1
+                        logger.info(f"✓ Sent message {message_count} ({idx-1} questions so far)")
+                    else:
+                        failed_count += 1
+                        logger.error(f"✗ Failed to send message {message_count}")
+                    
+                    # Small delay to avoid rate limiting
+                    import time
+                    time.sleep(0.5)
+                
+                # Start new message with current question
+                current_message = question_text
+            else:
+                # Add to current message
+                if current_message:
+                    current_message += "\n\n" + question_text
                 else:
-                    batch_text += "\n\n" + question_text if batch_text else question_text
-            
-            # Send remaining batch
-            if batch_text:
-                if self.send_message(batch_text):
-                    success_count += 1
-                    logger.info(f"✓ Sent batch {batch_num + 1}/{total_batches}")
-                else:
-                    logger.error(f"✗ Failed to send batch {batch_num + 1}/{total_batches}")
+                    current_message = question_text
+        
+        # Send remaining message
+        if current_message:
+            if self.send_message(current_message):
+                success_count += 1
+                message_count += 1
+                logger.info(f"✓ Sent final message {message_count} (all {len(quiz_data.questions)} questions)")
+            else:
+                failed_count += 1
+                logger.error(f"✗ Failed to send final message")
         
         # Send footer
         self.send_quiz_footer("currentadda")
         
-        logger.info(f"Sent {success_count} message batches successfully")
+        logger.info(f"✅ Sent {success_count} messages successfully, {failed_count} failed")
         return success_count > 0
     
     def create_summary_message(self, quiz_data: TranslatedQuizData, date: str) -> str:

@@ -81,6 +81,7 @@ jobs:
           LOGIN_PASSWORD: ${{ secrets.LOGIN_PASSWORD }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHANNEL: ${{ secrets.TELEGRAM_CHANNEL || '@currentadda' }}
+          TELEGRAM_TEXT_CHANNEL: ${{ secrets.TELEGRAM_TEXT_CHANNEL || '' }}
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
           GIST_ID: ${{ secrets.GIST_ID }}
           SESSION_GIST_ID: ${{ secrets.SESSION_GIST_ID }}

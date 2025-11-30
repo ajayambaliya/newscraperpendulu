@@ -182,14 +182,19 @@ def process_quiz(
         # Step 6: Send text messages (if text channel is configured)
         if telegram_text_sender:
             logger.info("Step 6: Sending formatted text messages to Telegram...")
-            text_success = telegram_text_sender.send_quiz_questions(
-                translated_data,
-                date_english
-            )
-            if text_success:
-                logger.info("Text messages sent successfully")
-            else:
-                logger.warning("Failed to send some text messages")
+            try:
+                text_success = telegram_text_sender.send_quiz_questions(
+                    translated_data,
+                    date_english
+                )
+                if text_success:
+                    logger.info("✅ Text messages sent successfully")
+                else:
+                    logger.warning("⚠️  Failed to send some text messages")
+            except Exception as e:
+                logger.error(f"❌ Error sending text messages: {e}")
+        else:
+            logger.info("ℹ️  Skipping text messages (text sender not configured)")
         
         # Step 7: Mark as processed
         logger.info(f"Step {'7' if telegram_text_sender else '6'}: Marking quiz as processed...")
@@ -258,8 +263,10 @@ def main():
         
         # Initialize text sender if text channel is configured
         telegram_text_sender = None
-        if env_vars.get('telegram_text_channel'):
-            text_channel = env_vars['telegram_text_channel']
+        text_channel_config = env_vars.get('telegram_text_channel', '').strip()
+        
+        if text_channel_config:
+            text_channel = text_channel_config
             if not text_channel.startswith('@'):
                 text_channel = f"@{text_channel}"
             
@@ -267,7 +274,9 @@ def main():
                 bot_token=env_vars['telegram_bot_token'],
                 channel_username=text_channel
             )
-            logger.info(f"Text sender initialized for: {text_channel}")
+            logger.info(f"✓ Text sender initialized for: {text_channel}")
+        else:
+            logger.info("ℹ️  Text sender disabled (TELEGRAM_TEXT_CHANNEL not set)")
         
         logger.info("All components initialized")
         
