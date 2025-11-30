@@ -167,10 +167,12 @@ class QuizScraper:
     
     def submit_quiz(self, url: str) -> str:
         """
-        Submit quiz to reveal solutions and return HTML with answers using Selenium.
+        Submit quiz to reveal solutions using POST request method.
         
-        IMPORTANT: This method MUST click the submit button and wait for JavaScript
-        to load the actual answers. The initial page has placeholder "Option D" answers.
+        The website works as follows:
+        1. Initial page has placeholder answers ("Option D")
+        2. POST to /quiz/quizanwers with quiz ID updates server session
+        3. GET the quiz page again - response contains actual answers
         
         Args:
             url: URL of the quiz page
@@ -185,14 +187,16 @@ class QuizScraper:
         logger = logging.getLogger(__name__)
         
         logger.info("=" * 80)
-        logger.info("SUBMIT_QUIZ: Starting Selenium submission")
+        logger.info("SUBMIT_QUIZ: Starting quiz submission")
         logger.info(f"SUBMIT_QUIZ: URL = {url}")
         logger.info("=" * 80)
         
         try:
-            html = self._submit_quiz_selenium(url)
+            # Method 1: POST request (fast and reliable)
+            logger.info("SUBMIT_QUIZ: Trying POST request method...")
+            html = self._submit_quiz_post(url)
             
-            # Verify we got the correct HTML with answers
+            # Verify we got correct answers
             from bs4 import BeautifulSoup
             soup = BeautifulSoup(html, 'html.parser')
             solution_sections = soup.find_all('div', class_='solution-sec')
@@ -201,22 +205,96 @@ class QuizScraper:
                 first_head = solution_sections[0].find('div', class_='head')
                 if first_head:
                     head_text = first_head.get_text(strip=True)
-                    logger.info(f"SUBMIT_QUIZ: First head div contains: '{head_text}'")
+                    logger.info(f"SUBMIT_QUIZ: First head div: '{head_text}'")
                     
-                    if 'Correct Answer:' in head_text:
-                        logger.info("SUBMIT_QUIZ: ✓ Successfully got HTML with correct answers!")
+                    if 'Correct Answer:' in head_text or 'सही उत्तर:' in head_text:
+                        logger.info("SUBMIT_QUIZ: ✓ POST method successful!")
                         return html
-                    else:
-                        logger.error(f"SUBMIT_QUIZ: ✗ FAILED - Head div shows '{head_text}' not 'Correct Answer:'")
-                        logger.error("SUBMIT_QUIZ: Selenium did not click submit button or wait for content!")
-                        raise ScraperError("Failed to get quiz answers - submit button not clicked properly")
             
-            logger.error("SUBMIT_QUIZ: ✗ FAILED - No solution sections found")
-            raise ScraperError("No solution sections found in HTML")
+            logger.warning("SUBMIT_QUIZ: POST method didn't work, trying Selenium...")
+            return self._submit_quiz_selenium(url)
             
         except Exception as e:
-            logger.error(f"SUBMIT_QUIZ: Exception occurred: {e}")
-            raise
+            logger.error(f"SUBMIT_QUIZ: POST method failed: {e}")
+            logger.info("SUBMIT_QUIZ: Falling back to Selenium...")
+            return self._submit_quiz_selenium(url)
+    
+    def _submit_quiz_post(self, url: str) -> str:
+        """
+        Submit quiz using POST request and return updated HTML.
+        
+        Args:
+            url: URL of the quiz page
+            
+        Returns:
+            HTML with solutions
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        from bs4 import BeautifulSoup
+        
+        logger.info("POST: Fetching initial page to get quiz ID...")
+        initial_html = self.get_quiz_page(url)
+        
+        soup = BeautifulSoup(initial_html, 'html.parser')
+        quiz_id_input = soup.find('input', {'id': 'intQuizId'})
+        english_quiz_id_input = soup.find('input', {'id': 'intEnglishQuizId'})
+        
+        if not quiz_id_input or not english_quiz_id_input:
+            raise ScraperError("Could not find quiz ID inputs in HTML")
+        
+        quiz_id = quiz_id_input.get('value')
+        english_quiz_id = english_quiz_id_input.get('value')
+        
+        logger.info(f"POST: Quiz ID = {quiz_id}, English Quiz ID = {english_quiz_id}")
+        
+        # Make POST request to submit quiz
+        logger.info("POST: Submitting quiz...")
+        submit_url = "https://pendulumedu.com/quiz/quizanwers"
+        
+        form_data = {
+            'intQuizId': quiz_id,
+            'intEnglishQuizId': english_quiz_id,
+            'txtCurrentURL': url,
+            'txtCurrentTime': '0',
+            'txtLoginPopupStatus': 'no',
+            'pauseBtnhms': 'resume'
+        }
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Origin': 'https://pendulumedu.com',
+            'Referer': url,
+        }
+        
+        response = self.session.post(
+            submit_url,
+            data=form_data,
+            headers=headers,
+            timeout=30,
+            allow_redirects=True
+        )
+        
+        logger.info(f"POST: Response status = {response.status_code}")
+        logger.info(f"POST: Final URL = {response.url}")
+        
+        # The POST updates the session. Now GET the quiz page again.
+        logger.info("POST: Fetching quiz page again (should have answers now)...")
+        time.sleep(2)  # Give server a moment
+        
+        updated_html = self.get_quiz_page(url)
+        
+        # Save for debugging
+        try:
+            with open('debug_scraped_quiz.html', 'w', encoding='utf-8') as f:
+                f.write(updated_html)
+            logger.info("POST: Saved HTML to debug_scraped_quiz.html")
+        except Exception:
+            pass
+        
+        return updated_html
     
     def _submit_quiz_selenium(self, url: str) -> str:
         """
