@@ -249,30 +249,51 @@ class QuizParser:
         solution_div = section.find('div', class_='solution-sec')
         
         if not solution_div:
+            logger.warning("❌ No solution-sec div found")
             return ""
         
-        solution_text = solution_div.get_text(strip=True)
+        logger.info("=" * 80)
+        logger.info("🔍 EXTRACTING CORRECT ANSWER")
         
-        # Look for patterns like "Answer: Option A", "Answer : Option B", etc.
+        # Check for head div first (new format)
+        head_div = solution_div.find('div', class_='head')
+        if head_div:
+            head_text = head_div.get_text(strip=True)
+            logger.info(f"📌 Found 'head' div with text: '{head_text}'")
+            
+            import re
+            match = re.search(r'(?:Answer|Correct Answer|Ans)[\s:]*(?:Option[\s:]*)?([A-D])', head_text, re.IGNORECASE)
+            if match:
+                answer = match.group(1).upper()
+                logger.info(f"✅ Extracted answer from 'head' div: {answer}")
+                return answer
+        
+        # Check for answr div (old format)
+        answr_div = solution_div.find('div', class_='answr')
+        if answr_div:
+            answr_text = answr_div.get_text(strip=True)
+            logger.info(f"📌 Found 'answr' div with text: '{answr_text}'")
+            
+            import re
+            match = re.search(r'(?:Answer|Correct Answer|Ans)[\s:]*(?:Option[\s:]*)?([A-D])', answr_text, re.IGNORECASE)
+            if match:
+                answer = match.group(1).upper()
+                logger.info(f"✅ Extracted answer from 'answr' div: {answer}")
+                return answer
+        
+        # Fallback: get all text from solution-sec
+        solution_text = solution_div.get_text(strip=True)
+        logger.info(f"📌 Full solution-sec text (first 200 chars): '{solution_text[:200]}'")
+        
         import re
         match = re.search(r'(?:Answer|Correct Answer|Ans)[\s:]*(?:Option[\s:]*)?([A-D])', solution_text, re.IGNORECASE)
         
         if match:
-            return match.group(1).upper()
+            answer = match.group(1).upper()
+            logger.info(f"✅ Extracted answer from full text: {answer}")
+            return answer
         
-        # If no pattern found, check if the text contains just a single letter A-D
-        if solution_text in ['A', 'B', 'C', 'D']:
-            return solution_text
-        
-        # Last resort: find answer in the answr div specifically
-        answr_div = solution_div.find('div', class_='answr')
-        if answr_div:
-            answr_text = answr_div.get_text(strip=True)
-            # Extract the last A-D character (which should be the actual answer)
-            for char in reversed(answr_text):
-                if char in ['A', 'B', 'C', 'D']:
-                    return char
-        
+        logger.warning("❌ Could not extract answer using any method")
         return ""
     
     def _extract_explanation(self, section) -> str:
@@ -287,37 +308,50 @@ class QuizParser:
         """
         import re
         
+        logger.info("🔍 EXTRACTING EXPLANATION")
+        
         # First find the solution-sec div
         solution_div = section.find('div', class_='solution-sec')
         
         if not solution_div:
-            logger.warning("No solution-sec div found in section")
+            logger.warning("❌ No solution-sec div found in section")
             return ""
+        
+        logger.info("✓ Found solution-sec div")
         
         # Then find ans-text div inside solution-sec
         explanation_div = solution_div.find('div', class_='ans-text')
         
         if not explanation_div:
-            logger.warning("No ans-text div found inside solution-sec")
+            logger.warning("❌ No ans-text div found inside solution-sec")
             # Debug: print what divs ARE in solution-sec
             divs_in_solution = solution_div.find_all('div')
-            logger.warning(f"Divs found in solution-sec: {[div.get('class') for div in divs_in_solution]}")
+            div_classes = [div.get('class') for div in divs_in_solution]
+            logger.warning(f"Divs found in solution-sec: {div_classes}")
+            
+            # Show the HTML structure for debugging
+            logger.warning(f"solution-sec HTML (first 500 chars): {str(solution_div)[:500]}")
             return ""
+        
+        logger.info("✓ Found ans-text div")
         
         # Extract text from list items and paragraphs
         explanation_parts = []
         
         # Get all list items
         list_items = explanation_div.find_all('li')
+        logger.info(f"📝 Found {len(list_items)} list items")
         for li in list_items:
             text = li.get_text(strip=True)
             # Clean up extra whitespace
             text = re.sub(r'\s+', ' ', text)
             if text:
+                logger.info(f"  • List item: {text[:100]}...")
                 explanation_parts.append(f"• {text}")
         
         # Get all paragraphs
         paragraphs = explanation_div.find_all('p')
+        logger.info(f"📝 Found {len(paragraphs)} paragraphs")
         for p in paragraphs:
             text = p.get_text(strip=True)
             # Clean up extra whitespace
@@ -325,16 +359,20 @@ class QuizParser:
             # Replace middle dot with bullet point
             text = text.replace('·', '•')
             if text and text not in explanation_parts:  # Avoid duplicates
+                logger.info(f"  • Paragraph: {text[:100]}...")
                 explanation_parts.append(text)
         
         # If no structured content found, get all text
         if not explanation_parts:
+            logger.warning("⚠️ No structured content found, getting all text")
             explanation_text = explanation_div.get_text(separator=' ', strip=True)
             # Clean up extra whitespace
             explanation_text = re.sub(r'\s+', ' ', explanation_text)
+            logger.info(f"📄 Raw text (first 200 chars): {explanation_text[:200]}...")
             return explanation_text
         
         result = ' '.join(explanation_parts)
         # Final cleanup of any remaining extra whitespace
         result = re.sub(r'\s+', ' ', result)
+        logger.info(f"✅ Final explanation ({len(result)} chars): {result[:200]}...")
         return result
