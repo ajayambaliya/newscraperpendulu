@@ -277,38 +277,58 @@ class QuizScraper:
                     
                     # Wait for solutions to appear
                     print("Waiting for solutions to load...")
-                    WebDriverWait(driver, 10).until(
+                    WebDriverWait(driver, 15).until(
                         EC.presence_of_element_located((By.CLASS_NAME, "solution-sec"))
                     )
+                    
+                    # CRITICAL: Wait for the solution-sec divs to have display:block (not display:none)
+                    print("Waiting for solution-sec to become visible...")
+                    try:
+                        WebDriverWait(driver, 15).until(
+                            lambda d: any(
+                                sol.value_of_css_property("display") == "block"
+                                for sol in d.find_elements(By.CLASS_NAME, "solution-sec")
+                            )
+                        )
+                        print("✓ solution-sec divs are now visible")
+                    except TimeoutException:
+                        print("⚠️ Warning: solution-sec divs still hidden, trying to proceed...")
                     
                     # Wait specifically for the head div to contain "Correct Answer" text
                     print("Waiting for correct answer to appear in head div...")
                     try:
-                        WebDriverWait(driver, 10).until(
+                        WebDriverWait(driver, 15).until(
                             lambda d: any(
-                                "Correct Answer" in head.text or "Answer : Option" in head.text
-                                for head in d.find_elements(By.CSS_SELECTOR, ".solution-sec .head, .solution-sec .answr")
+                                "Correct Answer:" in head.text
+                                for head in d.find_elements(By.CSS_SELECTOR, ".solution-sec .head")
+                                if head.text.strip()
                             )
                         )
-                        print("✓ Answer text detected in solution")
+                        print("✓ 'Correct Answer:' text detected in head divs")
                     except TimeoutException:
-                        print("⚠️ Warning: Timeout waiting for answer text, proceeding anyway...")
+                        print("⚠️ Warning: Timeout waiting for 'Correct Answer:' text...")
+                        # Try to check what we actually have
+                        heads = driver.find_elements(By.CSS_SELECTOR, ".solution-sec .head")
+                        if heads:
+                            print(f"  Found {len(heads)} head divs, first one says: '{heads[0].text[:50]}'")
                     
-                    # Wait for ans-text div to have content
+                    # Wait for ans-text div to have list items or paragraphs
                     print("Waiting for explanation content to load...")
                     try:
-                        WebDriverWait(driver, 10).until(
+                        WebDriverWait(driver, 15).until(
                             lambda d: any(
-                                len(ans_text.text.strip()) > 10
+                                len(ans_text.find_elements(By.TAG_NAME, "li")) > 0 or
+                                len(ans_text.find_elements(By.TAG_NAME, "p")) > 0
                                 for ans_text in d.find_elements(By.CLASS_NAME, "ans-text")
                             )
                         )
-                        print("✓ Explanation content detected")
+                        print("✓ Explanation content (li/p tags) detected")
                     except TimeoutException:
                         print("⚠️ Warning: Timeout waiting for explanation content...")
                     
-                    # Give it a final moment to fully render
-                    time.sleep(2)
+                    # Give it extra time to fully render all content
+                    print("Waiting for final render...")
+                    time.sleep(3)
                     
                     # Get the page source with solutions
                     html = driver.page_source
