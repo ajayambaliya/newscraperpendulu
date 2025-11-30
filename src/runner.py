@@ -22,6 +22,7 @@ from src.parser import QuizParser, QuizData
 from src.translator import Translator, TranslatedQuizData
 from src.pdf_generator import PDFGenerator
 from src.telegram_sender import TelegramSender
+from src.date_extractor import DateExtractor
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -93,7 +94,8 @@ def process_quiz(
     translator: Translator,
     pdf_generator: PDFGenerator,
     telegram_sender: TelegramSender,
-    state_manager: StateManager
+    state_manager: StateManager,
+    date_extractor: DateExtractor
 ) -> bool:
     """
     Process a single quiz through the complete pipeline.
@@ -106,6 +108,7 @@ def process_quiz(
         pdf_generator: PDFGenerator instance
         telegram_sender: TelegramSender instance
         state_manager: StateManager instance
+        date_extractor: DateExtractor instance
         
     Returns:
         True if successful, False otherwise
@@ -113,6 +116,27 @@ def process_quiz(
     logger.info(f"Processing quiz: {url}")
     
     try:
+        # Extract date from URL
+        date_info = date_extractor.extract_date_from_url(url)
+        if date_info:
+            date_obj, date_english, date_gujarati = date_info
+            date_filename = date_extractor.get_filename_date(url)
+            logger.info(f"✓ Extracted date: {date_english}")
+        else:
+            # Fallback to current date
+            import pytz
+            ist = pytz.timezone('Asia/Kolkata')
+            current_date = datetime.now(ist)
+            date_english = current_date.strftime("%d %B %Y")
+            date_gujarati = current_date.strftime("%d %B %Y")
+            date_filename = current_date.strftime("%Y%m%d")
+            logger.warning(f"Could not extract date from URL, using current date: {date_english}")
+        
+        # Set date in PDF generator
+        pdf_generator.date_english = date_english
+        pdf_generator.date_gujarati = date_gujarati
+        pdf_generator.date_filename = date_filename
+        
         # Step 1: Fetch and submit quiz page
         logger.info("Step 1: Fetching quiz page and revealing solutions...")
         html = scraper.submit_quiz(url)
@@ -135,17 +159,10 @@ def process_quiz(
         # Step 5: Send to Telegram
         logger.info("Step 5: Sending PDF to Telegram...")
         
-        # Create custom caption with quiz info
-        from datetime import datetime
-        import pytz
-        
-        ist = pytz.timezone('Asia/Kolkata')
-        current_date = datetime.now(ist)
-        date_str = current_date.strftime("%d %B %Y")
-        
+        # Create custom caption with extracted date
         caption = telegram_sender.create_custom_caption(
             question_count=len(translated_data.questions),
-            date=date_str
+            date=date_english
         )
         
         success = telegram_sender.send_pdf(pdf_path, caption)
@@ -209,6 +226,7 @@ def main():
         parser = QuizParser()
         translator = Translator()
         pdf_generator = PDFGenerator()
+        date_extractor = DateExtractor()
         # Prepare channel username (add @ if not present)
         channel = env_vars['telegram_channel']
         if not channel.startswith('@'):
@@ -269,7 +287,8 @@ def main():
                 translator=translator,
                 pdf_generator=pdf_generator,
                 telegram_sender=telegram_sender,
-                state_manager=state_manager
+                state_manager=state_manager,
+                date_extractor=date_extractor
             )
             
             if success:

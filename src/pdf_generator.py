@@ -31,13 +31,22 @@ class PDFGenerator:
         self.channel_name = "CurrentAdda"
         self.channel_link = "t.me/currentadda"
         
+        # Date information (can be overridden)
+        self.date_english = None
+        self.date_gujarati = None
+        self.date_filename = None
+        
         logger.info("PDF Generator initialized with Playwright")
 
     def generate_html(self, quiz_data: TranslatedQuizData) -> str:
         """Generate beautiful HTML from quiz data"""
-        ist = pytz.timezone('Asia/Kolkata')
-        current_date = datetime.now(ist)
-        date_gujarati = current_date.strftime("%d %B %Y")
+        # Use provided date or fallback to current date
+        if self.date_gujarati:
+            date_gujarati = self.date_gujarati
+        else:
+            ist = pytz.timezone('Asia/Kolkata')
+            current_date = datetime.now(ist)
+            date_gujarati = current_date.strftime("%d %B %Y")
         
         total_questions = len(quiz_data.questions)
         estimated_time = total_questions * 2
@@ -226,7 +235,12 @@ class PDFGenerator:
             logger.info("Generating HTML...")
             html = self.generate_html(quiz_data)
             
-            date_str = datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y%m%d")
+            # Use provided date or fallback to current date
+            if self.date_filename:
+                date_str = self.date_filename
+            else:
+                date_str = datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y%m%d")
+            
             html_path = os.path.join(self.html_output_dir, f"quiz_{date_str}.html")
             
             with open(html_path, 'w', encoding='utf-8') as f:
