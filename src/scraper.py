@@ -167,16 +167,10 @@ class QuizScraper:
     
     def submit_quiz(self, url: str) -> str:
         """
-        Submit quiz to reveal solutions and return HTML with answers.
+        Submit quiz to reveal solutions and return HTML with answers using Selenium.
         
-        The quiz page loads with placeholder answers (all showing "Option D").
-        When the submit button is clicked, it makes a POST request to /quiz/quizanwers
-        which returns the actual answers, and JavaScript updates the page.
-        
-        This method:
-        1. Loads the quiz page to get the quiz ID
-        2. Makes a POST request to /quiz/quizanwers to trigger answer reveal
-        3. Reloads the page to get the updated HTML with correct answers
+        The quiz page loads with placeholder answers. Clicking submit triggers
+        JavaScript that fetches and displays the actual answers.
         
         Args:
             url: URL of the quiz page
@@ -187,10 +181,10 @@ class QuizScraper:
         Raises:
             ScraperError: If submission fails
         """
-        # POST request doesn't work - the server stores submission in session
-        # but doesn't update the HTML. JavaScript is required to fetch and display answers.
-        # Use Selenium directly.
-        print("Using Selenium to submit quiz (POST method doesn't work)...")
+        print("=" * 80)
+        print("SUBMIT_QUIZ METHOD CALLED")
+        print(f"URL: {url}")
+        print("=" * 80)
         return self._submit_quiz_selenium(url)
     
     def _submit_quiz_selenium(self, url: str) -> str:
@@ -215,7 +209,10 @@ class QuizScraper:
             from selenium.webdriver.chrome.service import Service
             from selenium.common.exceptions import TimeoutException, NoSuchElementException
             
-            print(f"Using Selenium to submit quiz...")
+            print("=" * 80)
+            print("_SUBMIT_QUIZ_SELENIUM METHOD STARTED")
+            print(f"URL: {url}")
+            print("=" * 80)
             
             # Configure Chrome options for headless mode with anti-detection
             chrome_options = Options()
