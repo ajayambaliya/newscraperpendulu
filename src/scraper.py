@@ -354,54 +354,52 @@ class QuizScraper:
                     )
                     logger.info("SELENIUM: ✓ solution-sec divs found")
                     
-                    # CRITICAL: Wait for the solution-sec divs to have display:block (not display:none)
-                    print("Waiting for solution-sec to become visible...")
+                    # CRITICAL: Wait for the head div text to change from "Solution:" to "Correct Answer:"
+                    logger.info("SELENIUM: Waiting for head div to update (30 seconds timeout)...")
                     try:
-                        WebDriverWait(driver, 15).until(
+                        WebDriverWait(driver, 30).until(
                             lambda d: any(
-                                sol.value_of_css_property("display") == "block"
-                                for sol in d.find_elements(By.CLASS_NAME, "solution-sec")
-                            )
-                        )
-                        print("✓ solution-sec divs are now visible")
-                    except TimeoutException:
-                        print("⚠️ Warning: solution-sec divs still hidden, trying to proceed...")
-                    
-                    # Wait specifically for the head div to contain "Correct Answer" text
-                    print("Waiting for correct answer to appear in head div...")
-                    try:
-                        WebDriverWait(driver, 15).until(
-                            lambda d: any(
-                                "Correct Answer:" in head.text
+                                "Correct Answer:" in head.text or "सही उत्तर:" in head.text
                                 for head in d.find_elements(By.CSS_SELECTOR, ".solution-sec .head")
-                                if head.text.strip()
+                                if head.text.strip() and head.text.strip() != "Solution:"
                             )
                         )
-                        print("✓ 'Correct Answer:' text detected in head divs")
+                        logger.info("SELENIUM: ✓ Head div updated with 'Correct Answer:' text!")
                     except TimeoutException:
-                        print("⚠️ Warning: Timeout waiting for 'Correct Answer:' text...")
-                        # Try to check what we actually have
+                        logger.error("SELENIUM: ✗ TIMEOUT - Head div never updated!")
+                        # Check what we have
                         heads = driver.find_elements(By.CSS_SELECTOR, ".solution-sec .head")
                         if heads:
-                            print(f"  Found {len(heads)} head divs, first one says: '{heads[0].text[:50]}'")
+                            logger.error(f"SELENIUM: Found {len(heads)} head divs")
+                            for i, head in enumerate(heads[:3]):
+                                logger.error(f"SELENIUM: Head {i+1}: '{head.text[:100]}'")
+                        
+                        # Try waiting longer
+                        logger.info("SELENIUM: Waiting additional 10 seconds...")
+                        time.sleep(10)
+                        
+                        # Check again
+                        heads = driver.find_elements(By.CSS_SELECTOR, ".solution-sec .head")
+                        if heads and heads[0].text.strip():
+                            logger.info(f"SELENIUM: After extra wait, head div: '{heads[0].text[:100]}'")
                     
-                    # Wait for ans-text div to have list items or paragraphs
-                    print("Waiting for explanation content to load...")
+                    # Wait for ans-text div to have content
+                    logger.info("SELENIUM: Waiting for explanation content...")
                     try:
-                        WebDriverWait(driver, 15).until(
+                        WebDriverWait(driver, 20).until(
                             lambda d: any(
                                 len(ans_text.find_elements(By.TAG_NAME, "li")) > 0 or
                                 len(ans_text.find_elements(By.TAG_NAME, "p")) > 0
                                 for ans_text in d.find_elements(By.CLASS_NAME, "ans-text")
                             )
                         )
-                        print("✓ Explanation content (li/p tags) detected")
+                        logger.info("SELENIUM: ✓ Explanation content detected")
                     except TimeoutException:
-                        print("⚠️ Warning: Timeout waiting for explanation content...")
+                        logger.warning("SELENIUM: Timeout waiting for explanation content")
                     
-                    # Give it extra time to fully render all content
-                    print("Waiting for final render...")
-                    time.sleep(3)
+                    # Give it final time to render
+                    logger.info("SELENIUM: Final 5 second wait for complete render...")
+                    time.sleep(5)
                     
                     # Get the page source with solutions
                     html = driver.page_source
