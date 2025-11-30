@@ -3,6 +3,7 @@ Quiz scraping module for pendulumedu.com
 Handles fetching quiz listings and individual quiz pages
 """
 
+import os
 import time
 import requests
 from bs4 import BeautifulSoup
@@ -167,12 +168,9 @@ class QuizScraper:
     
     def submit_quiz(self, url: str) -> str:
         """
-        Submit quiz to reveal solutions using POST request method.
+        Submit quiz to reveal solutions using Playwright.
         
-        The website works as follows:
-        1. Initial page has placeholder answers ("Option D")
-        2. POST to /quiz/quizanwers with quiz ID updates server session
-        3. GET the quiz page again - response contains actual answers
+        Playwright handles JavaScript execution properly, unlike Selenium in headless mode.
         
         Args:
             url: URL of the quiz page
@@ -187,37 +185,188 @@ class QuizScraper:
         logger = logging.getLogger(__name__)
         
         logger.info("=" * 80)
-        logger.info("SUBMIT_QUIZ: Starting quiz submission")
+        logger.info("SUBMIT_QUIZ: Starting quiz submission with Playwright")
         logger.info(f"SUBMIT_QUIZ: URL = {url}")
         logger.info("=" * 80)
         
+        return self._submit_quiz_playwright(url)
+    
+    def _submit_quiz_playwright(self, url: str) -> str:
+        """
+        Submit quiz using Playwright (better JavaScript support than Selenium).
+        
+        Args:
+            url: URL of the quiz page
+            
+        Returns:
+            HTML with solutions
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         try:
-            # Method 1: POST request (fast and reliable)
-            logger.info("SUBMIT_QUIZ: Trying POST request method...")
-            html = self._submit_quiz_post(url)
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            raise ScraperError("Playwright not installed. Run: pip install playwright && playwright install chromium")
+        
+        logger.info("PLAYWRIGHT: Starting browser...")
+        
+        with sync_playwright() as p:
+            # Launch browser (headless by default, can be changed for debugging)
+            use_headless = os.getenv('USE_HEADLESS', 'true').lower() == 'true'
+            browser = p.chromium.launch(headless=use_headless)
             
-            # Verify we got correct answers
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(html, 'html.parser')
-            solution_sections = soup.find_all('div', class_='solution-sec')
+            logger.info(f"PLAYWRIGHT: Browser launched (headless={use_headless})")
             
-            if solution_sections:
-                first_head = solution_sections[0].find('div', class_='head')
-                if first_head:
-                    head_text = first_head.get_text(strip=True)
-                    logger.info(f"SUBMIT_QUIZ: First head div: '{head_text}'")
+            # Create context and page
+            context = browser.new_context(
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+            )
+            page = context.new_page()
+            
+            try:
+                # Get credentials
+                email = os.getenv('LOGIN_EMAIL')
+                password = os.getenv('LOGIN_PASSWORD')
+                
+                if not email or not password:
+                    raise ScraperError("LOGIN_EMAIL and LOGIN_PASSWORD must be set")
+                
+                # First, login to the website
+                logger.info("PLAYWRIGHT: Logging in...")
+                login_url = "https://pendulumedu.com/login"
+                page.goto(login_url, wait_until='networkidle', timeout=30000)
+                logger.info("PLAYWRIGHT: ✓ Login page loaded")
+                
+                # Fill login form
+                logger.info("PLAYWRIGHT: Filling login credentials...")
+                page.fill('input[name="emailId"]', email)
+                page.fill('input[name="password"]', password)
+                
+                # Click submit button
+                logger.info("PLAYWRIGHT: Submitting login form...")
+                page.click('button[type="submit"]')
+                
+                # Wait for login to complete (page will redirect)
+                logger.info("PLAYWRIGHT: Waiting for login to complete...")
+                page.wait_for_load_state('networkidle', timeout=10000)
+                logger.info(f"PLAYWRIGHT: ✓ Logged in, current URL: {page.url}")
+                
+                # Now navigate to quiz page
+                logger.info(f"PLAYWRIGHT: Loading quiz page: {url}")
+                page.goto(url, wait_until='networkidle', timeout=30000)
+                logger.info(f"PLAYWRIGHT: ✓ Quiz page loaded, URL: {page.url}")
+                
+                # Save screenshot for debugging
+                try:
+                    page.screenshot(path='debug_playwright_page.png')
+                    logger.info("PLAYWRIGHT: Saved screenshot to debug_playwright_page.png")
+                except Exception:
+                    pass
+                
+                # Check if quiz already has answers (already submitted before)
+                logger.info("PLAYWRIGHT: Checking if quiz already has answers...")
+                try:
+                    first_head = page.locator('.solution-sec .head').first
+                    head_text = first_head.text_content(timeout=2000)
+                    logger.info(f"PLAYWRIGHT: Head div text: '{head_text}'")
                     
                     if 'Correct Answer:' in head_text or 'सही उत्तर:' in head_text:
-                        logger.info("SUBMIT_QUIZ: ✓ POST method successful!")
-                        return html
-            
-            logger.warning("SUBMIT_QUIZ: POST method didn't work, trying Selenium...")
-            return self._submit_quiz_selenium(url)
-            
-        except Exception as e:
-            logger.error(f"SUBMIT_QUIZ: POST method failed: {e}")
-            logger.info("SUBMIT_QUIZ: Falling back to Selenium...")
-            return self._submit_quiz_selenium(url)
+                        logger.info("PLAYWRIGHT: ✅ Quiz already submitted! Answers are visible.")
+                        # No need to click submit, answers are already there
+                    else:
+                        logger.info("PLAYWRIGHT: Quiz not submitted yet, need to click submit button")
+                        raise Exception("Need to submit")
+                        
+                except Exception:
+                    # Quiz not submitted yet, need to click submit button
+                    logger.info("PLAYWRIGHT: Looking for submit button...")
+                    try:
+                        submit_button = page.locator('#submit-ans')
+                        submit_button.wait_for(state='visible', timeout=10000)
+                        logger.info("PLAYWRIGHT: ✓ Submit button found")
+                        
+                        # Scroll to button
+                        submit_button.scroll_into_view_if_needed()
+                        page.wait_for_timeout(1000)
+                        
+                        # Set up dialog handler BEFORE clicking
+                        def handle_dialog(dialog):
+                            logger.info(f"PLAYWRIGHT: Alert: '{dialog.message}'")
+                            dialog.accept()
+                        
+                        page.on('dialog', handle_dialog)
+                        
+                        # Click submit
+                        logger.info("PLAYWRIGHT: *** CLICKING SUBMIT BUTTON ***")
+                        submit_button.click()
+                        logger.info("PLAYWRIGHT: ✓ Submit button clicked")
+                        
+                        # Wait for solutions to update
+                        logger.info("PLAYWRIGHT: Waiting for solutions to load...")
+                        
+                        # Wait a moment for JavaScript to execute
+                        page.wait_for_timeout(2000)
+                        
+                        # Check if solutions loaded by looking at the head div text
+                        max_attempts = 15  # 15 seconds total
+                        for attempt in range(max_attempts):
+                            try:
+                                head_text = page.locator('.solution-sec .head').first.text_content()
+                                logger.info(f"PLAYWRIGHT: Attempt {attempt + 1}: Head div = '{head_text}'")
+                                
+                                if 'Correct Answer:' in head_text or 'सही उत्तर:' in head_text:
+                                    logger.info("PLAYWRIGHT: ✓ Solutions loaded!")
+                                    break
+                            except Exception:
+                                pass
+                            
+                            page.wait_for_timeout(1000)
+                        else:
+                            logger.warning("PLAYWRIGHT: Timeout waiting for solutions, continuing anyway...")
+                        
+                        # Wait a bit more for complete render
+                        page.wait_for_timeout(2000)
+                        
+                    except Exception as e:
+                        logger.error(f"PLAYWRIGHT: Submit button not found: {e}")
+                        logger.error(f"PLAYWRIGHT: Current URL: {page.url}")
+                        raise
+                
+                # Get HTML
+                html = page.content()
+                
+                # Save for debugging
+                try:
+                    with open('debug_scraped_quiz.html', 'w', encoding='utf-8') as f:
+                        f.write(html)
+                    logger.info("PLAYWRIGHT: Saved HTML to debug_scraped_quiz.html")
+                except Exception:
+                    pass
+                
+                # Verify we got correct answers
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(html, 'html.parser')
+                solution_sections = soup.find_all('div', class_='solution-sec')
+                
+                if solution_sections:
+                    first_head = solution_sections[0].find('div', class_='head')
+                    if first_head:
+                        head_text = first_head.get_text(strip=True)
+                        logger.info(f"PLAYWRIGHT: First head div: '{head_text}'")
+                        
+                        if 'Correct Answer:' in head_text or 'सही उत्तर:' in head_text:
+                            logger.info("PLAYWRIGHT: ✅ SUCCESS! Got correct answers!")
+                            return html
+                        else:
+                            logger.error(f"PLAYWRIGHT: ✗ FAILED - Head shows '{head_text}'")
+                
+                logger.warning("PLAYWRIGHT: Returning HTML anyway...")
+                return html
+                
+            finally:
+                browser.close()
+                logger.info("PLAYWRIGHT: Browser closed")
     
     def _submit_quiz_post(self, url: str) -> str:
         """
@@ -248,10 +397,9 @@ class QuizScraper:
         
         logger.info(f"POST: Quiz ID = {quiz_id}, English Quiz ID = {english_quiz_id}")
         
-        # Make POST request to submit quiz
-        logger.info("POST: Submitting quiz...")
-        submit_url = "https://pendulumedu.com/quiz/quizanwers"
-        
+        # Extract all form inputs to include answer selections
+        logger.info("POST: Extracting form data...")
+        form = soup.find('form', {'id': 'pendu_quiz'})
         form_data = {
             'intQuizId': quiz_id,
             'intEnglishQuizId': english_quiz_id,
@@ -260,6 +408,26 @@ class QuizScraper:
             'txtLoginPopupStatus': 'no',
             'pauseBtnhms': 'resume'
         }
+        
+        # Add all answer options (select first option for each question)
+        if form:
+            inputs = form.find_all('input', {'type': 'radio'})
+            logger.info(f"POST: Found {len(inputs)} radio inputs")
+            
+            # Group by question and select first option for each
+            questions_seen = set()
+            for inp in inputs:
+                name = inp.get('name')
+                value = inp.get('value')
+                if name and value and name not in questions_seen:
+                    form_data[name] = value
+                    questions_seen.add(name)
+            
+            logger.info(f"POST: Selected answers for {len(questions_seen)} questions")
+        
+        # Make POST request to submit quiz
+        logger.info("POST: Submitting quiz with answers...")
+        submit_url = "https://pendulumedu.com/quiz/quizanwers"
         
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -329,9 +497,17 @@ class QuizScraper:
             logger.info("SELENIUM: Imports successful")
             
             logger.info("SELENIUM: Configuring Chrome options...")
-            # Configure Chrome options for headless mode with anti-detection
+            # Configure Chrome options - try without headless first
             chrome_options = Options()
-            chrome_options.add_argument('--headless=new')
+            
+            # Only use headless if environment variable is set
+            use_headless = os.getenv('USE_HEADLESS', 'true').lower() == 'true'
+            if use_headless:
+                logger.info("SELENIUM: Using headless mode")
+                chrome_options.add_argument('--headless=new')
+            else:
+                logger.info("SELENIUM: Using visible browser mode")
+            
             chrome_options.add_argument('--no-sandbox')
             chrome_options.add_argument('--disable-dev-shm-usage')
             chrome_options.add_argument('--disable-gpu')
@@ -340,6 +516,9 @@ class QuizScraper:
             chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36')
             chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
             chrome_options.add_experimental_option('useAutomationExtension', False)
+            
+            # Enable JavaScript
+            chrome_options.add_argument('--enable-javascript')
             
             # Add preferences to appear more like a real browser
             prefs = {
@@ -374,32 +553,60 @@ class QuizScraper:
                 driver.get(url)
                 logger.info("SELENIUM: ✓ Page loaded")
                 
-                # Add random delay to appear more human-like
-                wait_time = 2 + (time.time() % 2)
-                logger.info(f"SELENIUM: Waiting {wait_time:.1f} seconds...")
-                time.sleep(wait_time)
+                # Wait for page to load
+                time.sleep(3)
                 
-                # Transfer session cookies to Selenium
-                logger.info("SELENIUM: Transferring session cookies...")
-                cookie_count = 0
-                for cookie in self.session.cookies:
-                    cookie_dict = {
-                        'name': cookie.name,
-                        'value': cookie.value,
-                        'domain': cookie.domain,
-                        'path': cookie.path,
-                    }
-                    try:
-                        driver.add_cookie(cookie_dict)
-                        cookie_count += 1
-                    except Exception:
-                        pass
-                logger.info(f"SELENIUM: ✓ Transferred {cookie_count} cookies")
+                # Check if we need to login (look for login elements)
+                try:
+                    # Check if there's a login/signup button in header
+                    signin_button = driver.find_element(By.CSS_SELECTOR, ".signin-btn, .signup-btn")
+                    logger.info("SELENIUM: Not logged in, need to login...")
+                    
+                    # Get credentials
+                    email = os.getenv('LOGIN_EMAIL')
+                    password = os.getenv('LOGIN_PASSWORD')
+                    
+                    if not email or not password:
+                        raise ScraperError("LOGIN_EMAIL and LOGIN_PASSWORD must be set")
+                    
+                    # Click signin button to open login modal/page
+                    logger.info("SELENIUM: Clicking signin button...")
+                    driver.execute_script("arguments[0].click();", signin_button)
+                    time.sleep(2)
+                    
+                    # Fill login form (might be in modal or redirected page)
+                    logger.info("SELENIUM: Looking for login form...")
+                    email_input = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.ID, "emailId"))
+                    )
+                    password_input = driver.find_element(By.ID, "password")
+                    
+                    logger.info("SELENIUM: Filling login credentials...")
+                    email_input.clear()
+                    email_input.send_keys(email)
+                    password_input.clear()
+                    password_input.send_keys(password)
+                    
+                    # Click login button
+                    login_button = driver.find_element(By.CSS_SELECTOR, "button[onclick*='sign_in']")
+                    logger.info("SELENIUM: Clicking login button...")
+                    driver.execute_script("arguments[0].click();", login_button)
+                    
+                    # Wait for login
+                    time.sleep(3)
+                    
+                    # Navigate back to quiz if we were redirected
+                    if driver.current_url != url:
+                        logger.info(f"SELENIUM: Navigating back to quiz: {url}")
+                        driver.get(url)
+                        time.sleep(2)
+                    
+                    logger.info("SELENIUM: ✓ Logged in successfully")
+                    
+                except Exception as e:
+                    logger.info(f"SELENIUM: Already logged in or login not needed: {e}")
                 
-                # Reload page with cookies
-                logger.info("SELENIUM: Reloading page with cookies...")
-                driver.get(url)
-                logger.info("SELENIUM: ✓ Page reloaded with authentication")
+                logger.info("SELENIUM: ✓ Quiz page ready")
                 
                 # Wait for page to load
                 logger.info("SELENIUM: Waiting 2 seconds for page to fully load...")
@@ -424,6 +631,36 @@ class QuizScraper:
                     logger.info("SELENIUM: *** CLICKING SUBMIT BUTTON NOW ***")
                     driver.execute_script("arguments[0].click();", submit_button)
                     logger.info("SELENIUM: ✓ Submit button clicked!")
+                    
+                    # Wait a moment for any alerts or modals
+                    time.sleep(2)
+                    
+                    # Check for "already attempted" alert
+                    try:
+                        logger.info("SELENIUM: Checking for alerts...")
+                        alert = driver.switch_to.alert
+                        alert_text = alert.text
+                        logger.info(f"SELENIUM: Alert found: '{alert_text}'")
+                        
+                        if "already attempted" in alert_text.lower():
+                            logger.info("SELENIUM: Quiz already attempted - accepting alert...")
+                            alert.accept()
+                            logger.info("SELENIUM: ✓ Alert accepted")
+                            time.sleep(2)  # Wait for page to update after alert
+                    except Exception:
+                        logger.info("SELENIUM: No alert found (this is normal)")
+                    
+                    # Check for login modal
+                    try:
+                        login_modal = driver.find_element(By.ID, "myModal-score-card")
+                        if login_modal.is_displayed():
+                            logger.error("SELENIUM: ✗ Login modal appeared - cookies not working!")
+                            # Try to close modal and proceed anyway
+                            close_button = driver.find_element(By.CSS_SELECTOR, "#myModal-score-card .close")
+                            close_button.click()
+                            time.sleep(1)
+                    except Exception:
+                        logger.info("SELENIUM: No login modal (good!)")
                     
                     # Wait for solutions to appear
                     logger.info("SELENIUM: Waiting for solution-sec divs to appear...")
