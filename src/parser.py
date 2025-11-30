@@ -253,9 +253,9 @@ class QuizParser:
         
         solution_text = solution_div.get_text(strip=True)
         
-        # Look for patterns like "Answer: A", "Correct Answer: B", etc.
+        # Look for patterns like "Answer: Option A", "Answer : Option B", etc.
         import re
-        match = re.search(r'(?:Answer|Correct Answer|Ans)[\s:]*([A-D])', solution_text, re.IGNORECASE)
+        match = re.search(r'(?:Answer|Correct Answer|Ans)[\s:]*(?:Option[\s:]*)?([A-D])', solution_text, re.IGNORECASE)
         
         if match:
             return match.group(1).upper()
@@ -264,10 +264,14 @@ class QuizParser:
         if solution_text in ['A', 'B', 'C', 'D']:
             return solution_text
         
-        # Try to find the first occurrence of A, B, C, or D
-        for char in solution_text:
-            if char in ['A', 'B', 'C', 'D']:
-                return char
+        # Last resort: find answer in the answr div specifically
+        answr_div = solution_div.find('div', class_='answr')
+        if answr_div:
+            answr_text = answr_div.get_text(strip=True)
+            # Extract the last A-D character (which should be the actual answer)
+            for char in reversed(answr_text):
+                if char in ['A', 'B', 'C', 'D']:
+                    return char
         
         return ""
     
@@ -281,6 +285,8 @@ class QuizParser:
         Returns:
             Explanation text (may be empty string if not found)
         """
+        import re
+        
         # First find the solution-sec div
         solution_div = section.find('div', class_='solution-sec')
         
@@ -305,6 +311,8 @@ class QuizParser:
         list_items = explanation_div.find_all('li')
         for li in list_items:
             text = li.get_text(strip=True)
+            # Clean up extra whitespace
+            text = re.sub(r'\s+', ' ', text)
             if text:
                 explanation_parts.append(f"• {text}")
         
@@ -312,12 +320,21 @@ class QuizParser:
         paragraphs = explanation_div.find_all('p')
         for p in paragraphs:
             text = p.get_text(strip=True)
+            # Clean up extra whitespace
+            text = re.sub(r'\s+', ' ', text)
+            # Replace middle dot with bullet point
+            text = text.replace('·', '•')
             if text and text not in explanation_parts:  # Avoid duplicates
                 explanation_parts.append(text)
         
         # If no structured content found, get all text
         if not explanation_parts:
             explanation_text = explanation_div.get_text(separator=' ', strip=True)
+            # Clean up extra whitespace
+            explanation_text = re.sub(r'\s+', ' ', explanation_text)
             return explanation_text
         
-        return ' '.join(explanation_parts)
+        result = ' '.join(explanation_parts)
+        # Final cleanup of any remaining extra whitespace
+        result = re.sub(r'\s+', ' ', result)
+        return result
