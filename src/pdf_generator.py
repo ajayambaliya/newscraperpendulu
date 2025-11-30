@@ -97,17 +97,21 @@ class PDFGenerator:
         * {{ font-family: 'Noto Serif Gujarati', serif; }}
         body {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }}
         @page {{ size: A4; margin: 0; }}
-        .page-break {{ page-break-after: always; position: relative; }}
+        .page-break {{ page-break-after: always; position: relative; min-height: 100vh; }}
         .no-break {{ page-break-inside: avoid; }}
         .glass {{ background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.18); }}
         .blob {{ border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; background: linear-gradient(45deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1)); }}
-        .watermark {{
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            opacity: 0.15;
+        .watermark-fullpage {{
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.08;
             z-index: 0;
             pointer-events: none;
+            width: 60%;
+            max-width: 500px;
+            height: auto;
         }}
         .content {{ position: relative; z-index: 1; }}
     </style>
@@ -117,19 +121,18 @@ class PDFGenerator:
         
         html += self._generate_cover_page(date_gujarati, total_questions, estimated_time)
         
-        # Use base64 logo for watermark
+        # Use base64 logo for full-page centered watermark
         watermark_html = ""
         if self.logo_base64:
-            watermark_html = f'<img src="{self.logo_base64}" alt="Watermark" class="watermark w-32 h-32 object-contain" />'
+            watermark_html = f'<img src="{self.logo_base64}" alt="Watermark" class="watermark-fullpage" />'
         
-        # Generate questions in pages (2 per page)
-        html += f'<div class="page-break p-12">{watermark_html}<div class="content">'
+        # Generate questions - 1 per page
         for idx, question in enumerate(quiz_data.questions):
+            html += f'<div class="page-break flex items-center justify-center p-12">'
+            html += watermark_html
+            html += '<div class="content w-full max-w-4xl">'
             html += self._generate_question_page(question)
-            # Add page break after every 2 questions
-            if (idx + 1) % 2 == 0 and (idx + 1) < len(quiz_data.questions):
-                html += f'</div></div><div class="page-break p-12">{watermark_html}<div class="content">'
-        html += '</div></div>'
+            html += '</div></div>'
         
         # Add promotional page
         html += self._generate_promotional_page()
@@ -220,7 +223,7 @@ class PDFGenerator:
 """
 
     def _generate_question_page(self, question: QuizQuestion) -> str:
-        """Generate compact question card (2 per page)"""
+        """Generate full-page question card (1 per page)"""
         
         # Debug logging
         if question.explanation:
@@ -236,18 +239,18 @@ class PDFGenerator:
                 if is_correct:
                     option_class = "bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-400 shadow-md"
                     label_class = "bg-gradient-to-br from-green-500 to-emerald-600 text-white"
-                    check_mark = '<span class="text-lg">✓</span>'
+                    check_mark = '<span class="text-xl">✓</span>'
                 else:
                     option_class = "bg-white border border-gray-200"
                     label_class = "bg-gradient-to-br from-gray-400 to-gray-500 text-white"
                     check_mark = ""
                 
                 options_html += f"""
-                <div class="{option_class} rounded-xl p-3">
-                    <div class="flex items-center gap-3">
-                        <div class="{label_class} w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shadow-sm">{label}</div>
-                        <div class="flex-1 text-sm font-semibold text-gray-800 leading-snug">{question.options[label]}</div>
-                        {f'<div class="flex items-center gap-1"><span class="text-green-600 font-bold text-xs">સાચો જવાબ</span>{check_mark}</div>' if is_correct else ''}
+                <div class="{option_class} rounded-xl p-4 mb-3">
+                    <div class="flex items-center gap-4">
+                        <div class="{label_class} w-10 h-10 rounded-lg flex items-center justify-center font-bold text-base shadow-sm">{label}</div>
+                        <div class="flex-1 text-base font-semibold text-gray-800 leading-relaxed">{question.options[label]}</div>
+                        {f'<div class="flex items-center gap-2"><span class="text-green-600 font-bold text-sm">સાચો જવાબ</span>{check_mark}</div>' if is_correct else ''}
                     </div>
                 </div>
 """
@@ -255,23 +258,23 @@ class PDFGenerator:
         explanation_html = ""
         if question.explanation:
             explanation_html = f"""
-            <div class="glass rounded-xl p-4 border-l-4 border-indigo-500 shadow-md mt-4">
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="text-xl">💡</span>
-                    <h4 class="text-sm font-bold text-indigo-700">સમજૂતી</h4>
+            <div class="glass rounded-xl p-5 border-l-4 border-indigo-500 shadow-md mt-5">
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="text-2xl">💡</span>
+                    <h4 class="text-base font-bold text-indigo-700">સમજૂતી</h4>
                 </div>
-                <p class="text-gray-700 leading-snug text-xs">{question.explanation}</p>
+                <p class="text-gray-700 leading-relaxed text-sm">{question.explanation}</p>
             </div>
 """
         
         return f"""
-    <div class="no-break bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
-        <div class="flex items-start gap-3 mb-4">
-            <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-lg shadow-md">{question.question_number}</div>
-            <h2 class="flex-1 text-base font-bold text-gray-900 leading-snug pt-1">{question.question_text}</h2>
+    <div class="no-break bg-white rounded-3xl shadow-2xl p-8 border border-gray-100">
+        <div class="flex items-start gap-4 mb-6">
+            <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-xl shadow-lg">{question.question_number}</div>
+            <h2 class="flex-1 text-lg font-bold text-gray-900 leading-relaxed pt-1">{question.question_text}</h2>
         </div>
         
-        <div class="space-y-2">{options_html}</div>
+        <div>{options_html}</div>
         
         {explanation_html}
     </div>
@@ -321,10 +324,10 @@ class PDFGenerator:
 
     def _generate_promotional_page(self) -> str:
         """Generate promotional page for the channel"""
-        # Use base64 logo for watermark
+        # Use base64 logo for full-page centered watermark
         watermark_html = ""
         if self.logo_base64:
-            watermark_html = f'<img src="{self.logo_base64}" alt="Watermark" class="watermark w-32 h-32 object-contain" />'
+            watermark_html = f'<img src="{self.logo_base64}" alt="Watermark" class="watermark-fullpage" />'
         
         return f"""
     <div class="page-break relative min-h-screen flex items-center justify-center p-12 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
