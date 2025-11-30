@@ -281,18 +281,66 @@ class QuizScraper:
                         EC.presence_of_element_located((By.CLASS_NAME, "solution-sec"))
                     )
                     
-                    # Give it a moment to fully render
+                    # Wait specifically for the head div to contain "Correct Answer" text
+                    print("Waiting for correct answer to appear in head div...")
+                    try:
+                        WebDriverWait(driver, 10).until(
+                            lambda d: any(
+                                "Correct Answer" in head.text or "Answer : Option" in head.text
+                                for head in d.find_elements(By.CSS_SELECTOR, ".solution-sec .head, .solution-sec .answr")
+                            )
+                        )
+                        print("✓ Answer text detected in solution")
+                    except TimeoutException:
+                        print("⚠️ Warning: Timeout waiting for answer text, proceeding anyway...")
+                    
+                    # Wait for ans-text div to have content
+                    print("Waiting for explanation content to load...")
+                    try:
+                        WebDriverWait(driver, 10).until(
+                            lambda d: any(
+                                len(ans_text.text.strip()) > 10
+                                for ans_text in d.find_elements(By.CLASS_NAME, "ans-text")
+                            )
+                        )
+                        print("✓ Explanation content detected")
+                    except TimeoutException:
+                        print("⚠️ Warning: Timeout waiting for explanation content...")
+                    
+                    # Give it a final moment to fully render
                     time.sleep(2)
                     
                     # Get the page source with solutions
                     html = driver.page_source
                     
-                    # Verify solutions are present
+                    # Verify solutions are present and have content
                     soup = BeautifulSoup(html, 'html.parser')
                     solution_sections = soup.find_all('div', class_='solution-sec')
                     
                     if solution_sections:
                         print(f"✓ Solutions revealed! Found {len(solution_sections)} solution sections")
+                        
+                        # Debug: Check first solution section
+                        first_solution = solution_sections[0]
+                        head_div = first_solution.find('div', class_='head')
+                        ans_text_div = first_solution.find('div', class_='ans-text')
+                        
+                        if head_div:
+                            print(f"  First head div: '{head_div.get_text(strip=True)[:80]}'")
+                        if ans_text_div:
+                            ans_text_content = ans_text_div.get_text(strip=True)
+                            print(f"  First ans-text length: {len(ans_text_content)} chars")
+                            if len(ans_text_content) > 0:
+                                print(f"  First ans-text preview: '{ans_text_content[:80]}'")
+                        
+                        # Save HTML for debugging
+                        try:
+                            with open('debug_scraped_quiz.html', 'w', encoding='utf-8') as f:
+                                f.write(html)
+                            print("  Debug: Saved scraped HTML to debug_scraped_quiz.html")
+                        except Exception as e:
+                            print(f"  Warning: Could not save debug HTML: {e}")
+                        
                         return html
                     else:
                         print("Warning: Submit clicked but no solutions found")
