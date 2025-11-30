@@ -224,6 +224,19 @@ def main():
     print("=" * 80)
     print()
     
+    # Check Playwright installation
+    try:
+        from playwright.sync_api import sync_playwright
+        print("✓ Playwright is installed")
+    except ImportError:
+        print("❌ Error: Playwright is not installed!")
+        print()
+        print("Please run the following commands:")
+        print("  pip install playwright")
+        print("  python -m playwright install chromium")
+        print()
+        return 1
+    
     # Get credentials from environment
     email = os.getenv('LOGIN_EMAIL')
     password = os.getenv('LOGIN_PASSWORD')
