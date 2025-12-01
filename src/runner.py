@@ -183,6 +183,10 @@ def process_quiz(
         
         telegram_sender.send_message(header_message)
         
+        # Small delay between messages
+        import time
+        time.sleep(2)
+        
         # Send Study Mode PDF
         logger.info("  → Sending Study Mode PDF...")
         study_caption = f"""📚 કરંટ અફેર્સ ક્વિઝ - Study Mode
@@ -201,6 +205,9 @@ def process_quiz(
             return False
         
         logger.info("  ✓ Study Mode PDF sent successfully")
+        
+        # Small delay between PDFs
+        time.sleep(2)
         
         # Send Practice Mode PDF
         logger.info("  → Sending Practice Mode PDF...")

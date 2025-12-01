@@ -47,6 +47,16 @@ class TelegramSender:
             True if successful, False otherwise
         """
         try:
+            # Get or create event loop
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_closed():
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
             async def _send():
                 await self.bot.send_message(
                     chat_id=self.channel_username,
@@ -54,7 +64,7 @@ class TelegramSender:
                     parse_mode='HTML'
                 )
             
-            asyncio.run(_send())
+            loop.run_until_complete(_send())
             logger.info("✓ Message sent successfully")
             return True
             
