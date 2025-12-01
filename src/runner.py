@@ -157,27 +157,71 @@ def process_quiz(
         translated_data = translator.translate_quiz(quiz_data)
         logger.info("Translation completed")
         
-        # Step 4: Generate PDF
-        logger.info("Step 4: Generating PDF...")
-        pdf_path = pdf_generator.generate_pdf(translated_data)
-        logger.info(f"PDF generated: {pdf_path}")
+        # Step 4: Generate PDFs (both modes)
+        logger.info("Step 4: Generating PDFs...")
+        
+        # Generate Study Mode PDF
+        logger.info("  → Generating Study Mode PDF...")
+        study_pdf_path = pdf_generator.generate_pdf(translated_data, mode='study')
+        logger.info(f"  ✓ Study PDF: {study_pdf_path}")
+        
+        # Generate Practice Mode PDF
+        logger.info("  → Generating Practice Mode PDF...")
+        practice_pdf_path = pdf_generator.generate_pdf(translated_data, mode='practice')
+        logger.info(f"  ✓ Practice PDF: {practice_pdf_path}")
         
         # Step 5: Send to Telegram
-        logger.info("Step 5: Sending PDF to Telegram...")
+        logger.info("Step 5: Sending PDFs to Telegram...")
         
-        # Create custom caption with extracted date
-        caption = telegram_sender.create_custom_caption(
-            question_count=len(translated_data.questions),
-            date=date_english
-        )
+        # Send header message
+        header_message = f"""📚 આજની ક્વિઝ - 2 ફોર્મેટમાં ઉપલબ્ધ!
+📅 {date_english}
+📝 {len(translated_data.questions)} પ્રશ્નો
+
+📚 Study Mode - જવાબ અને સમજૂતી પ્રશ્ન સાથે
+✍️ Practice Mode - જવાબો અને સમજૂતી છેલ્લે"""
         
-        success = telegram_sender.send_pdf(pdf_path, caption)
+        telegram_sender.send_message(header_message)
         
-        if not success:
-            logger.error("Failed to send PDF to Telegram")
+        # Send Study Mode PDF
+        logger.info("  → Sending Study Mode PDF...")
+        study_caption = f"""📚 કરંટ અફેર્સ ક્વિઝ - Study Mode
+📅 {date_english}
+📝 {len(translated_data.questions)} પ્રશ્નો
+
+✅ આ PDF માં જવાબ અને સમજૂતી પ્રશ્ન સાથે જ છે
+📖 અભ્યાસ અને શીખવા માટે યોગ્ય
+
+#CurrentAffairs #GPSC #GSSSB #GujaratJobs"""
+        
+        study_success = telegram_sender.send_pdf(study_pdf_path, study_caption)
+        
+        if not study_success:
+            logger.error("Failed to send Study Mode PDF")
             return False
         
-        logger.info("PDF sent to Telegram successfully")
+        logger.info("  ✓ Study Mode PDF sent successfully")
+        
+        # Send Practice Mode PDF
+        logger.info("  → Sending Practice Mode PDF...")
+        practice_caption = f"""✍️ કરંટ અફેર્સ ક્વિઝ - Practice Mode
+📅 {date_english}
+📝 {len(translated_data.questions)} પ્રશ્નો
+
+📝 આ PDF માં જવાબો અને સમજૂતી છેલ્લે છે
+✅ પહેલા જાતે પ્રયત્ન કરો, પછી જવાબ તપાસો
+🎯 પ્રેક્ટિસ અને સેલ્ફ-ટેસ્ટિંગ માટે યોગ્ય
+
+#CurrentAffairs #GPSC #GSSSB #GujaratJobs"""
+        
+        practice_success = telegram_sender.send_pdf(practice_pdf_path, practice_caption)
+        
+        if not practice_success:
+            logger.warning("Failed to send Practice Mode PDF (continuing anyway)")
+        else:
+            logger.info("  ✓ Practice Mode PDF sent successfully")
+        
+        logger.info("✅ Both PDFs sent to Telegram successfully")
         
         # Step 6: Send text messages (if text channel is configured)
         if telegram_text_sender:

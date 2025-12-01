@@ -36,6 +36,35 @@ class TelegramSender:
         
         logger.info(f"TelegramSender initialized for channel: {channel_username}")
     
+    def send_message(self, text: str) -> bool:
+        """
+        Send a text message to the channel.
+        
+        Args:
+            text: Message text to send
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            async def _send():
+                await self.bot.send_message(
+                    chat_id=self.channel_username,
+                    text=text,
+                    parse_mode='HTML'
+                )
+            
+            asyncio.run(_send())
+            logger.info("✓ Message sent successfully")
+            return True
+            
+        except TelegramError as e:
+            logger.error(f"Telegram error sending message: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error sending message: {e}")
+            return False
+    
     def send_pdf(self, pdf_path: str, caption: Optional[str] = None) -> bool:
         """
         Send PDF file to Telegram channel.
