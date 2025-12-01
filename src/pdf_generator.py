@@ -209,7 +209,9 @@ class PDFGenerator:
         if self.pdf_mode == 'practice':
             # Practice Mode: Questions without answers
             for idx, question in enumerate(quiz_data.questions):
-                html += f'<div class="page-break flex items-center justify-center p-12">'
+                # First question doesn't need page-break (cover already has one)
+                page_class = '' if idx == 0 else 'page-break'
+                html += f'<div class="{page_class} flex items-center justify-center p-12">'
                 html += watermark_html
                 html += '<div class="content w-full max-w-4xl">'
                 html += self._generate_question_page(question, show_answer=False)
@@ -223,7 +225,9 @@ class PDFGenerator:
         else:
             # Study Mode: Questions with answers (current format)
             for idx, question in enumerate(quiz_data.questions):
-                html += f'<div class="page-break flex items-center justify-center p-12">'
+                # First question doesn't need page-break (cover already has one)
+                page_class = '' if idx == 0 else 'page-break'
+                html += f'<div class="{page_class} flex items-center justify-center p-12">'
                 html += watermark_html
                 html += '<div class="content w-full max-w-4xl">'
                 html += self._generate_question_page(question, show_answer=True)
